@@ -15,31 +15,82 @@
 
 ;; * ox-pandoc
 ;;
-;; This is another exporter for Org 8.0 that outputs to various formats
-;; via Pandoc (version 1.12.4 or later).
+;; This is another exporter for Org 8 that translates org-mode file to
+;; various other formats via Pandoc (version 1.12.4 or later is needed).
 ;;
 ;; * Usage
 ;;
-;; Various exporters are available, include:
+;; Exporters for following formats are available.
 ;;
-;; - =org-pandoc-export-as-html=  :: Exports the HTML format to a buffer.
-;; - =org-pandoc-export-to-beamer=  :: Exports the Beamer LaTeX format to a file.
+;; | format            | buffer | file |
+;; |-------------------+--------+------|
+;; | asciidoc          | t      | t    |
+;; | beamer            | t      | t    |
+;; | context           | t      | t    |
+;; | docbook           | t      | t    |
+;; | docx              | nil    | t    |
+;; | dzslides          | t      | t    |
+;; | epub              | nil    | t    |
+;; | epub3             | nil    | t    |
+;; | fb2               | t      | t    |
+;; | html              | t      | t    |
+;; | html5             | t      | t    |
+;; | icml              | t      | t    |
+;; | json              | t      | t    |
+;; | latex             | t      | t    |
+;; | man               | t      | t    |
+;; | markdown          | t      | t    |
+;; | markdown_github   | t      | t    |
+;; | markdown_mmd      | t      | t    |
+;; | markdown_phpextra | t      | t    |
+;; | markdown_strict   | t      | t    |
+;; | mediawiki         | t      | t    |
+;; | native            | t      | t    |
+;; | odt               | nil    | t    |
+;; | opendocument      | nil    | t    |
+;; | opml              | t      | t    |
+;; | org               | t      | t    |
+;; | plain             | t      | t    |
+;; | revealjs          | t      | t    |
+;; | rst               | t      | t    |
+;; | rtf               | t      | t    |
+;; | s5                | t      | t    |
+;; | slideous          | t      | t    |
+;; | slidy             | t      | t    |
+;; | texinfo           | t      | t    |
+;; | textile           | t      | t    |
 ;;
-;; * Customization
+;; For example, for 'html5', two exporters are prepared.
+;;
+;; - =org-pandoc-export-as-html=  :: Exports the HTML text to a buffer.
+;; - =org-pandoc-export-to-html=  :: Exports the HTML text to a file.
+;;
+;; * Customizations
 ;;
 ;; ** Variables
 ;;
 ;; - =org-pandoc-options= :: General Pandoc options.
 ;; - =org-pandoc-options-for-FORMAT= :: Format-specific options.
-;; - =org-pandoc-epub-right= :: EPub Copyright Statement.
+;; - =org-pandoc-epub-right= :: EPUB Copyright Statement.
+;;
+;; Options should be specified by an alist. List of options are defined
+;; in 'org-pandoc-valid-options'. Note that shortend form can not be
+;; used.
 ;;
 ;; Document-specific options can be set to "#+PANDOC_OPTIONS:" in the
-;; document.  Latter options will override former options.
+;; document. Latter options will override former options. Value 'nil'
+;; overrides precedent option setting. Value 't' means only specify
+;; option, but not its value.
 ;;
-;; Below are examples:
+;; Following is an example.
 ;;
-;; : (setq org-pandoc-options '((standalone . t))) ;; for all output
-;; : (setq org-pandoc-options-docx '((standalone . nil))) ;; cancel general settings.
+;; : ;; default options for all output formats
+;; : (setq org-pandoc-options '((standalone . t)))
+;; : ;; cancel above settings only for 'docx' format
+;; : (setq org-pandoc-options-for-docx '((standalone . nil)))
+;;
+;; Each document can set its own customization variable.
+;;
 ;; : # following will only apply to specific document.
 ;; : #+PANDOC_OPTIONS: standalone:t
 ;;
@@ -50,22 +101,27 @@
 ;;
 ;; ** In-File Options
 ;;
-;; - #+PANDOC_OPTIONS :: Add command line options to the Pandoc process.
-;; - #+EPUB_RIGHTS: :: copyright info to be embedded to ePub metadata.
-;; - #+EPUB_CHAPTER_LEVEL: :: same as 'epub-chapter-level' PANDOC_OPTION.
-;; - #+EPUB_COVER: :: same as 'epub-cover-image' PANDOC_OPTION.
-;; - #+EPUB_EMBED_FONT: :: same as 'epub-embed-font' PANDOC_OPTION.
-;; - #+EPUB_METADATA: :: same as 'epub-metadata' PANDOC_OPTION.
-;; - #+EPUB_STYLESHEET :: same as 'epub-stylesheet' PANDOC_OPTION.
-;; - #+BIBLIOGRAPHY :: same as 'bibliography' PANDOC_OPTION.
+;; Followings are in-flie options. For EPUB outputs, various in-file
+;; options can be used.
+;;
+;; - =PANDOC_OPTIONS= :: Add command line options to the Pandoc process.
+;; - =EPUB_RIGHTS:= :: copyright info to be embedded to ePub metadata.
+;; - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
+;; - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
+;; - =EPUB_EMBED_FONT:= :: same as 'epub-embed-font' pandoc-option.
+;; - =EPUB_METADATA:= :: same as 'epub-metadata' pandoc-option.
+;; - =EPUB_STYLESHEET= :: same as 'epub-stylesheet' pandoc-option.
+;; - =BIBLIOGRAPHY= :: same as 'bibliography' pandoc-option.
 ;;
 ;; ** Note
 ;;
-;; This is based on [[https://github.com/robtillotson/org-pandoc][org-pandoc]], but entirely re-written.
+;; This file is inspired by [[https://github.com/robtillotson/org-pandoc][org-pandoc]], but entirely re-written.
 ;;
-;; ** TODO-list
+;; ** Citation
 ;;
-;; - Currently, citation style is [@num], rather than {\item}, so we may need some preprocessor to convert this.
+;; - Currently, Pandoc citation key is expressed as /@key/, rather than
+;;   /{\cite key}/ . You may need some text converter if you want to use
+;;   Pandoc citation styles in org document.
 
 ;;; Code:
 
@@ -693,14 +749,15 @@ Option table is created in this stage."
            (concat "<dc:description>" description "</dc:description>\n"))
          (-when-let (description (plist-get info :keywords))
            (concat "<dc:subject>" description "</dc:subject>\n"))))
-  (dolist (epub-option '((epub-chapter-level . :epub-chapter-level)
-                         (epub-cover-image . :epub-cover-image)
-                         (epub-embed-font . :epub-embed-font)
-                         (epub-metadata . :epub-metadata)
-                         (epub-stylesheet . :epub-stylesheet)
-                         (bibliography . :bibliography)))
-    (-when-let (val (plist-get info (cdr epub-option)))
-      (puthash (car epub-option) val org-pandoc-option-table)))
+  (org-pandoc-put-options
+   (--mapcat (-when-let (val (plist-get info (cdr it)))
+               (list (cons (car it) val)))
+             '((epub-chapter-level . :epub-chapter-level)
+               (epub-cover-image   . :epub-cover-image)
+               (epub-embed-font    . :epub-embed-font)
+               (epub-metadata      . :epub-metadata)
+               (epub-stylesheet    . :epub-stylesheet)
+               (bibliography       . :bibliography))))
   contents)
 
 (defun org-pandoc-put-options (options)
