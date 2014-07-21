@@ -24,8 +24,12 @@ document.  Latter options will override former options.
 
 Below are examples:
 
-: (setq org-pandoc-options '((standalone . t))) ;; for all output
-: (setq org-pandoc-options-docx '((standalone . nil))) ;; cancel general settings.
+: ;; default options for all output formats
+: (setq org-pandoc-options '((standalone . t)))
+:
+: ;; cancel above settings only for 'docx' format
+: (setq org-pandoc-options-for-docx '((standalone . nil)))
+:
 : # following will only apply to specific document.
 : #+PANDOC_OPTIONS: standalone:t
 
