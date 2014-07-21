@@ -712,7 +712,8 @@ Option table is created in this stage."
          (if bufferp (get-buffer-create "*Pandoc Output*")
            (org-export-output-file-name
             (concat "." (symbol-name
-                         (assoc-default format org-pandoc-extensions nil format)))
+                         (or (assoc-default format org-pandoc-extensions)
+                             format)))
             subtreep)))
         (metadata-file (make-temp-file "org-pandoc" nil ".xml")))
     (when (bufferp output-buffer-or-file)
