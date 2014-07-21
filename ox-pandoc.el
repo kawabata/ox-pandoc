@@ -96,6 +96,12 @@
     slide-level smart standalone tab-stop table-of-contents template
     title-prefix to toc-depth variable version webtex))
 
+(defconst org-pandoc-file-options
+  '(template include-in-header include-before-body include-after-body
+    reference-odt reference-docx epub-stylesheet epub-cover-image
+    epub-metadata epub-embed-font bibliography csl
+    citation-abbreviations data-dir))
+
 (defconst org-pandoc-extensions
   '((markdown_github . md) (beamer . tex)
     (dzslides . html) (epub3 . epub) (html5 . html) (latex . tex)
@@ -704,6 +710,8 @@ Option table is created in this stage."
       (if (equal "nil" value) (setq value nil))
       (unless (memq name org-pandoc-valid-options)
         (error "Org-Pandoc: Improper Option Name! %s" name))
+      (if (memq name org-pandoc-file-options)
+          (setq value (expand-file-name value)))
       (puthash name value org-pandoc-option-table))))
 
 (defun org-pandoc-run-to-buffer-or-file
