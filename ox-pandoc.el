@@ -1,18 +1,22 @@
 ;;; ox-pandoc.el --- org exporter for pandoc.        -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014 KAWABATA, Taichi
+
+;; Filename: ox-pandoc.el
+;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
 ;; Version: 1.140721
 ;; Package-Requires: ((org "8.2") (dash "1.0") (ht "1.0"))
 ;; Keywords: tools
+;; URL: https://github.com/kawabata/ox-pandoc
 
 ;;; Commentary:
 
 ;; * ox-pandoc
 ;;
 ;; This is another exporter for Org 8.0 that outputs to various formats
-;; via Pandoc.
+;; via Pandoc (version 1.12.4 or later).
 ;;
 ;; * Usage
 ;;
@@ -76,8 +80,6 @@
   :version "24.3"
   :package-version '(Org . "8.2"))
 
-(defvar org-pandoc-command "pandoc")
-
 (defconst org-pandoc-valid-options
   '(ascii atx-headers base-header-level biblatex bibliography chapters
     citation-abbreviations columns csl css data-dir
@@ -106,6 +108,11 @@
   "Pandoc options."
   :group 'org-export-pandoc
   :type 'list)
+
+(defcustom org-pandoc-command "pandoc"
+  "Pandoc command."
+  :group 'org-export-pandoc
+  :type 'string)
 
 (org-export-define-derived-backend 'pandoc 'org
   :translate-alist '((template . org-pandoc-template))

@@ -2,7 +2,7 @@
 * ox-pandoc
 
 This is another exporter for Org 8.0 that outputs to various formats
-via Pandoc.
+via Pandoc (version 1.12.4 or later).
 
 * Usage
 
