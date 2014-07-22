@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.140721
+;; Version: 1.140722
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -159,11 +159,12 @@
     citation-abbreviations data-dir))
 
 (defconst org-pandoc-extensions
-  '((markdown_github . md) (beamer . tex)
-    (dzslides . html) (epub3 . epub) (html5 . html) (latex . tex)
+  '((beamer . tex) (context . tex) (dzslides . html)
+    (epub3 . epub) (html5 . html) (latex . tex)
     (markdown . md) (markdown_github . md) (markdown_mmd . md)
-    (markdown_strict . md) (opendocument . odt) (revealjs . html)
-    (s5 . html) (slideous . html)))
+    (markdown_strict . md) (opendocument . odt) (plain . txt)
+    (revealjs . html) (s5 . html) (slideous . html)
+    (slidy . html)))
 
 (defcustom org-pandoc-options '((standalone . t)
                                 (table-of-contents . t))
@@ -178,71 +179,71 @@
 
 (defcustom org-pandoc-menu-entry
   '(
-    (?a "as asciidoc." org-pandoc-export-to-asciidoc)
-    (?A "to asciidoc." org-pandoc-export-as-asciidoc)
-    (?b "as beamer." org-pandoc-export-to-beamer)
-    (?B "to beamer." org-pandoc-export-as-beamer)
-    (?c "as context." org-pandoc-export-to-context)
-    (?C "to context." org-pandoc-export-as-context)
-    ;;(?d "as docbook." org-pandoc-export-to-docbook)
-    ;;(?D "to docbook." org-pandoc-export-as-docbook)
-    (?x "as docx." org-pandoc-export-to-docx)
-    ;;(?z "as dzslides." org-pandoc-export-to-dzslides)
-    (?Z "to dzslides." org-pandoc-export-as-dzslides)
-    (?e "as epub." org-pandoc-export-to-epub)
-    (?E "as epub3." org-pandoc-export-to-epub3)
-    ;;(?f "as fb2." org-pandoc-export-to-fb2)
+    (?a "to asciidoc and open." org-pandoc-export-to-asciidoc-and-open)
+    (?A "as asciidoc." org-pandoc-export-as-asciidoc)
+    (?b "to beamer and open." org-pandoc-export-to-beamer-and-open)
+    (?B "as beamer." org-pandoc-export-as-beamer)
+    (?c "to context and open." org-pandoc-export-to-context-and-open)
+    (?C "as context." org-pandoc-export-as-context)
+    ;;(?d "to docbook and open." org-pandoc-export-to-docbook-and-open)
+    ;;(?D "as docbook." org-pandoc-export-as-docbook)
+    (?x "to docx and open." org-pandoc-export-to-docx-and-open)
+    ;;(?z "to dzslides and open." org-pandoc-export-to-dzslides-and-open)
+    (?Z "as dzslides." org-pandoc-export-as-dzslides)
+    (?e "to epub and open." org-pandoc-export-to-epub-and-open)
+    (?E "to epub3 and open." org-pandoc-export-to-epub3-and-open)
+    ;;(?f "to fb2 and open." org-pandoc-export-to-fb2-and-open)
     ;;(?F "to fb2." org-pandoc-export-as-fb2)
-    ;;(?g "as html." org-pandoc-export-to-html)
-    ;;(?G "to html." org-pandoc-export-as-html)
-    (?h "as html5." org-pandoc-export-to-html5)
+    ;;(?g "to html and open." org-pandoc-export-to-html-and-open)
+    ;;(?G "as html." org-pandoc-export-as-html)
+    (?h "to html5 and open." org-pandoc-export-to-html5-and-open)
     (?H "to html5." org-pandoc-export-as-html5)
-    ;;(?i "as icml." org-pandoc-export-to-icml)
-    ;;(?I "to icml." org-pandoc-export-as-icml)
-    (?j "as json." org-pandoc-export-to-json)
-    (?J "to json." org-pandoc-export-as-json)
-    (?l "as latex." org-pandoc-export-to-latex)
-    (?L "to latex." org-pandoc-export-as-latex)
-    (?1 "as man." org-pandoc-export-to-man)
-    (?! "to man." org-pandoc-export-as-man)
-    (?m "as markdown." org-pandoc-export-to-markdown)
-    (?M "to markdown." org-pandoc-export-as-markdown)
-    (?k "as markdown_github." org-pandoc-export-to-markdown_github)
-    (?K "to markdown_github." org-pandoc-export-as-markdown_github)
-    ;;(?m "as markdown_mmd." org-pandoc-export-to-markdown_mmd)
-    ;;(?M "to markdown_mmd." org-pandoc-export-as-markdown_mmd)
-    ;;(?m "as markdown_phpextra." org-pandoc-export-to-markdown_phpextra)
-    ;;(?M "to markdown_phpextra." org-pandoc-export-as-markdown_phpextra)
-    ;;(?m "as markdown_strict." org-pandoc-export-to-markdown_strict)
-    ;;(?M "to markdown_strict." org-pandoc-export-as-markdown_strict)
-    (?w "as mediawiki." org-pandoc-export-to-mediawiki)
-    (?W "to mediawiki." org-pandoc-export-as-mediawiki)
-    (?n "as native." org-pandoc-export-to-native)
-    (?N "to native." org-pandoc-export-as-native)
-    (?o "as odt." org-pandoc-export-to-odt)
-    (?O "as opendocument." org-pandoc-export-to-opendocument)
-    (?2 "as opml." org-pandoc-export-to-opml)
-    (?@ "to opml." org-pandoc-export-as-opml)
-    ;;(?3 "as org." org-pandoc-export-to-org)
-    ;;(?# "to org." org-pandoc-export-as-org)
-    ;;(?p "as plain." org-pandoc-export-to-plain)
-    ;;(?P "to plain." org-pandoc-export-as-plain)
-    (?v "as revealjs." org-pandoc-export-to-revealjs)
-    (?V "to revealjs." org-pandoc-export-as-revealjs)
-    ;;(?r "as rst." org-pandoc-export-to-rst)
-    ;;(?R "to rst." org-pandoc-export-as-rst)
-    (?4 "as rtf." org-pandoc-export-to-rtf)
-    (?$ "to rtf." org-pandoc-export-as-rtf)
-    (?s "as s5." org-pandoc-export-to-s5)
+    ;;(?i "to icml and open." org-pandoc-export-to-icml-and-open)
+    ;;(?I "as icml." org-pandoc-export-as-icml)
+    (?j "to json and open." org-pandoc-export-to-json-and-open)
+    (?J "as json." org-pandoc-export-as-json)
+    (?l "to latex and open." org-pandoc-export-to-latex-and-open)
+    (?L "as latex." org-pandoc-export-as-latex)
+    (?1 "to man and open." org-pandoc-export-to-man-and-open)
+    (?! "as man." org-pandoc-export-as-man)
+    (?m "to markdown and open." org-pandoc-export-to-markdown-and-open)
+    (?M "as markdown." org-pandoc-export-as-markdown)
+    (?k "to markdown_github and open." org-pandoc-export-to-markdown_github-and-open)
+    (?K "as markdown_github." org-pandoc-export-as-markdown_github)
+    ;;(?m "to markdown_mmd and open." org-pandoc-export-to-markdown_mmd-and-open)
+    ;;(?M "as markdown_mmd." org-pandoc-export-as-markdown_mmd)
+    ;;(?m "to markdown_phpextra and open." org-pandoc-export-to-markdown_phpextra-and-open)
+    ;;(?M "as markdown_phpextra." org-pandoc-export-as-markdown_phpextra)
+    ;;(?m "to markdown_strict and open." org-pandoc-export-to-markdown_strict-and-open)
+    ;;(?M "as markdown_strict." org-pandoc-export-as-markdown_strict)
+    (?w "to mediawiki and open." org-pandoc-export-to-mediawiki-and-open)
+    (?W "as mediawiki." org-pandoc-export-as-mediawiki)
+    (?n "to native and open." org-pandoc-export-to-native-and-open)
+    (?N "as native." org-pandoc-export-as-native)
+    (?o "to odt and open." org-pandoc-export-to-odt-and-open)
+    (?O "to opendocument and open." org-pandoc-export-to-opendocument-and-open)
+    (?2 "to opml and open." org-pandoc-export-to-opml-and-open)
+    (?@ "as opml." org-pandoc-export-as-opml)
+    ;;(?3 "to org and open." org-pandoc-export-to-org-and-open)
+    ;;(?# "as org." org-pandoc-export-as-org)
+    ;;(?p "to plain and open." org-pandoc-export-to-plain-and-open)
+    ;;(?P "as plain." org-pandoc-export-as-plain)
+    (?v "to revealjs and open." org-pandoc-export-to-revealjs-and-open)
+    (?V "as revealjs." org-pandoc-export-as-revealjs)
+    ;;(?r "to rst and open." org-pandoc-export-to-rst-and-open)
+    ;;(?R "as rst." org-pandoc-export-as-rst)
+    (?4 "to rtf and open." org-pandoc-export-to-rtf-and-open)
+    (?$ "as rtf." org-pandoc-export-as-rtf)
+    (?s "to s5 and open." org-pandoc-export-to-s5-and-open)
     (?S "to s5." org-pandoc-export-as-s5)
-    (?5 "as slideous." org-pandoc-export-to-slideous)
-    (?% "to slideous." org-pandoc-export-as-slideous)
-    (?6 "as slidy." org-pandoc-export-to-slidy)
-    (?^ "to slidy." org-pandoc-export-as-slidy)
-    ;;(?t "as texinfo." org-pandoc-export-to-texinfo)
-    ;;(?T "to texinfo." org-pandoc-export-as-texinfo)
-    ;;(?v "as textile." org-pandoc-export-to-textile)
-    ;;(?V "to textile." org-pandoc-export-as-textile)
+    (?5 "to slideous and open." org-pandoc-export-to-slideous-and-open)
+    (?% "as slideous." org-pandoc-export-as-slideous)
+    (?6 "to slidy and open." org-pandoc-export-to-slidy-and-open)
+    (?^ "as slidy." org-pandoc-export-as-slidy)
+    ;;(?t "to texinfo and open." org-pandoc-export-to-texinfo-and-open)
+    ;;(?T "as texinfo." org-pandoc-export-as-texinfo)
+    ;;(?v "to textile and open." org-pandoc-export-to-textile-and-open)
+    ;;(?V "as textile." org-pandoc-export-as-textile)
     )
   "Pandoc menu-entry."
   :group 'org-export-pandoc
@@ -284,6 +285,10 @@
   (interactive) (org-pandoc-export 'asciidoc a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-asciidoc-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'asciidoc a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-asciidoc (&optional a s v b e)
   (interactive) (org-pandoc-export 'asciidoc a s v b e t))
 
@@ -295,6 +300,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-beamer (&optional a s v b e)
   (interactive) (org-pandoc-export 'beamer a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-beamer-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'beamer a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-beamer (&optional a s v b e)
@@ -310,6 +319,10 @@
   (interactive) (org-pandoc-export 'context a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-context-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'context a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-context (&optional a s v b e)
   (interactive) (org-pandoc-export 'context a s v b e t))
 
@@ -321,6 +334,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-docbook (&optional a s v b e)
   (interactive) (org-pandoc-export 'docbook a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-docbook-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'docbook a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-docbook (&optional a s v b e)
@@ -335,6 +352,10 @@
 (defun org-pandoc-export-to-docx (&optional a s v b e)
   (interactive) (org-pandoc-export 'docx a s v b e))
 
+;;;###autoload
+(defun org-pandoc-export-to-docx-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'docx a s v b e 0))
+
 (defcustom org-pandoc-options-for-dzslides nil
   "Pandoc options for dzslides."
   :group 'org-export-pandoc
@@ -343,6 +364,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-dzslides (&optional a s v b e)
   (interactive) (org-pandoc-export 'dzslides a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-dzslides-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'dzslides a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-dzslides (&optional a s v b e)
@@ -357,6 +382,10 @@
 (defun org-pandoc-export-to-epub (&optional a s v b e)
   (interactive) (org-pandoc-export 'epub a s v b e))
 
+;;;###autoload
+(defun org-pandoc-export-to-epub-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'epub a s v b e 0))
+
 (defcustom org-pandoc-options-for-epub3 nil
   "Pandoc options for epub3."
   :group 'org-export-pandoc
@@ -366,6 +395,10 @@
 (defun org-pandoc-export-to-epub3 (&optional a s v b e)
   (interactive) (org-pandoc-export 'epub3 a s v b e))
 
+;;;###autoload
+(defun org-pandoc-export-to-epub3-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'epub3 a s v b e 0))
+
 (defcustom org-pandoc-options-for-fb2 nil
   "Pandoc options for fb2."
   :group 'org-export-pandoc
@@ -374,6 +407,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-fb2 (&optional a s v b e)
   (interactive) (org-pandoc-export 'fb2 a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-fb2-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'fb2 a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-fb2 (&optional a s v b e)
@@ -389,6 +426,10 @@
   (interactive) (org-pandoc-export 'html a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-html-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'html a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-html (&optional a s v b e)
   (interactive) (org-pandoc-export 'html a s v b e t))
 
@@ -400,6 +441,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-html5 (&optional a s v b e)
   (interactive) (org-pandoc-export 'html5 a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-html5-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'html5 a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-html5 (&optional a s v b e)
@@ -415,6 +460,10 @@
   (interactive) (org-pandoc-export 'icml a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-icml-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'icml a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-icml (&optional a s v b e)
   (interactive) (org-pandoc-export 'icml a s v b e t))
 
@@ -426,6 +475,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-json (&optional a s v b e)
   (interactive) (org-pandoc-export 'json a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-json-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'json a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-json (&optional a s v b e)
@@ -441,6 +494,10 @@
   (interactive) (org-pandoc-export 'latex a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-latex-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'latex a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-latex (&optional a s v b e)
   (interactive) (org-pandoc-export 'latex a s v b e t))
 
@@ -452,6 +509,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-man (&optional a s v b e)
   (interactive) (org-pandoc-export 'man a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-man-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'man a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-man (&optional a s v b e)
@@ -467,6 +528,10 @@
   (interactive) (org-pandoc-export 'markdown a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-markdown-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'markdown a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-markdown (&optional a s v b e)
   (interactive) (org-pandoc-export 'markdown a s v b e t))
 
@@ -478,6 +543,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_github (&optional a s v b e)
   (interactive) (org-pandoc-export 'markdown_github a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-markdown_github-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'markdown_github a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-markdown_github (&optional a s v b e)
@@ -493,6 +562,10 @@
   (interactive) (org-pandoc-export 'markdown_mmd a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-markdown_mmd-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'markdown_mmd a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-markdown_mmd (&optional a s v b e)
   (interactive) (org-pandoc-export 'markdown_mmd a s v b e t))
 
@@ -504,6 +577,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_phpextra (&optional a s v b e)
   (interactive) (org-pandoc-export 'markdown_phpextra a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-markdown_phpextra-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'markdown_phpextra a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-markdown_phpextra (&optional a s v b e)
@@ -519,6 +596,10 @@
   (interactive) (org-pandoc-export 'markdown_strict a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-markdown_strict-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'markdown_strict a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-markdown_strict (&optional a s v b e)
   (interactive) (org-pandoc-export 'markdown_strict a s v b e t))
 
@@ -530,6 +611,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-mediawiki (&optional a s v b e)
   (interactive) (org-pandoc-export 'mediawiki a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-mediawiki-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'mediawiki a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-mediawiki (&optional a s v b e)
@@ -545,6 +630,10 @@
   (interactive) (org-pandoc-export 'native a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-native-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'native a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-native (&optional a s v b e)
   (interactive) (org-pandoc-export 'native a s v b e t))
 
@@ -557,6 +646,14 @@
 (defun org-pandoc-export-to-odt (&optional a s v b e)
   (interactive) (org-pandoc-export 'odt a s v b e))
 
+;;;###autoload
+(defun org-pandoc-export-to-odt-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'odt a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-odt (&optional a s v b e)
+  (interactive) (org-pandoc-export 'odt a s v b e t))
+
 (defcustom org-pandoc-options-for-opendocument nil
   "Pandoc options for opendocument."
   :group 'org-export-pandoc
@@ -566,6 +663,10 @@
 (defun org-pandoc-export-to-opendocument (&optional a s v b e)
   (interactive) (org-pandoc-export 'opendocument a s v b e))
 
+;;;###autoload
+(defun org-pandoc-export-to-opendocument-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'opendocument a s v b e 0))
+
 (defcustom org-pandoc-options-for-opml nil
   "Pandoc options for opml."
   :group 'org-export-pandoc
@@ -574,6 +675,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-opml (&optional a s v b e)
   (interactive) (org-pandoc-export 'opml a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-opml-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'opml a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-opml (&optional a s v b e)
@@ -589,6 +694,10 @@
   (interactive) (org-pandoc-export 'org a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-org-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'org a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-org (&optional a s v b e)
   (interactive) (org-pandoc-export 'org a s v b e t))
 
@@ -600,6 +709,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-plain (&optional a s v b e)
   (interactive) (org-pandoc-export 'plain a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-plain-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'plain a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-plain (&optional a s v b e)
@@ -615,6 +728,10 @@
   (interactive) (org-pandoc-export 'revealjs a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-revealjs-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'revealjs a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-revealjs (&optional a s v b e)
   (interactive) (org-pandoc-export 'revealjs a s v b e t))
 
@@ -626,6 +743,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-rst (&optional a s v b e)
   (interactive) (org-pandoc-export 'rst a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-rst-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'rst a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-rst (&optional a s v b e)
@@ -641,6 +762,10 @@
   (interactive) (org-pandoc-export 'rtf a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-rtf-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'rtf a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-rtf (&optional a s v b e)
   (interactive) (org-pandoc-export 'rtf a s v b e t))
 
@@ -652,6 +777,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-s5 (&optional a s v b e)
   (interactive) (org-pandoc-export 's5 a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-s5-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 's5 a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-s5 (&optional a s v b e)
@@ -667,6 +796,10 @@
   (interactive) (org-pandoc-export 'slideous a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-slideous-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'slideous a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-slideous (&optional a s v b e)
   (interactive) (org-pandoc-export 'slideous a s v b e t))
 
@@ -678,6 +811,10 @@
 ;;;###autoload
 (defun org-pandoc-export-to-slidy (&optional a s v b e)
   (interactive) (org-pandoc-export 'slidy a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-slidy-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'slidy a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-slidy (&optional a s v b e)
@@ -693,6 +830,10 @@
   (interactive) (org-pandoc-export 'texinfo a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-texinfo-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'texinfo a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-texinfo (&optional a s v b e)
   (interactive) (org-pandoc-export 'texinfo a s v b e t))
 
@@ -706,6 +847,10 @@
   (interactive) (org-pandoc-export 'textile a s v b e))
 
 ;;;###autoload
+(defun org-pandoc-export-to-textile-and-open (&optional a s v b e)
+  (interactive) (org-pandoc-export 'textile a s v b e 0))
+
+;;;###autoload
 (defun org-pandoc-export-as-textile (&optional a s v b e)
   (interactive) (org-pandoc-export 'textile a s v b e t))
 
@@ -716,13 +861,13 @@
 (defvar org-pandoc-option-table nil)
 (defvar org-pandoc-epub-metadata nil)
 
-(defun org-pandoc-export (format a s v b e &optional buf)
+(defun org-pandoc-export (format a s v b e &optional buf-or-open)
   "General interface for Pandoc Export."
   (unless (equal major-mode 'org-mode)
     (error "You must run this command in org-mode!"))
   (setq org-pandoc-format format)
   (org-export-to-file 'pandoc (make-temp-file "org-pandoc" nil ".org")
-    a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf))))
+    a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
 
 (defun org-pandoc-template (contents info)
   "Template processor for CONTENTS and INFO.
@@ -773,9 +918,9 @@ Option table is created in this stage."
       (puthash name value org-pandoc-option-table))))
 
 (defun org-pandoc-run-to-buffer-or-file
-    (input-file format subtreep &optional bufferp)
+    (input-file format subtreep &optional buffer-or-open)
   (let ((output-buffer-or-file
-         (if bufferp (get-buffer-create "*Pandoc Output*")
+         (if (equal t buffer-or-open) (get-buffer-create "*Pandoc Output*")
            (org-export-output-file-name
             (concat "." (symbol-name
                          (or (assoc-default format org-pandoc-extensions)
@@ -794,7 +939,8 @@ Option table is created in this stage."
     (if (file-exists-p metadata-file) (delete-file metadata-file))
     (when (bufferp output-buffer-or-file)
       (pop-to-buffer output-buffer-or-file)
-      (set-auto-mode))))
+      (set-auto-mode))
+    (if (equal 0 buffer-or-open) (org-open-file output-buffer-or-file))))
 
 (defun org-pandoc-run (input-file buffer-or-file format &optional options)
   "Run pandoc command with INPUT-FILE (org), BUFFER-OR-FILE, FORMAT and OPTIONS.
