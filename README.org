@@ -1,3 +1,4 @@
+#+TITLE: ox-pandoc
 * ox-pandoc
 
 This is another exporter for Org 8 that translates org-mode file to
@@ -13,6 +14,7 @@ Exporters for following formats are available.
 |-------------------+--------+------|
 | asciidoc          | t      | t    |
 | beamer            | t      | t    |
+| beamer-pdf        | nil    | t    |
 | context           | t      | t    |
 | docbook           | t      | t    |
 | docx              | nil    | t    |
@@ -25,6 +27,7 @@ Exporters for following formats are available.
 | icml              | t      | t    |
 | json              | t      | t    |
 | latex             | t      | t    |
+| latex-pdf         | nil    | t    |
 | man               | t      | t    |
 | markdown          | t      | t    |
 | markdown_github   | t      | t    |
@@ -55,15 +58,14 @@ For example, for 'html5' format, two exporters are prepared.
 
 * Customizations
 
-** Variables
+** Option Variables
 
 - =org-pandoc-options= :: General Pandoc options.
 - =org-pandoc-options-for-FORMAT= :: Format-specific options.
-- =org-pandoc-epub-right= :: EPUB Copyright Statement.
 
-Options should be specified by an alist. List of options are defined
-in 'org-pandoc-valid-options'. Note that shortend form can not be
-used.
+Options should be specified by an alist. List of valid options are
+defined in 'org-pandoc-valid-options'. Note that shortened form can
+not be used.
 
 Document-specific options can be set to "#+PANDOC_OPTIONS:" in the
 document. Latter options will override former options. Value 'nil'
@@ -87,6 +89,13 @@ can surround entire setting with quote. e.g.
 
 : #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
 
+** Other Variables
+
+- =org-pandoc-after-processing-FORMAT-hook= :: Hook after processing
+     FORMAT. This hook is only available to text-file FORMAT.
+
+- =org-pandoc-epub-right= :: EPUB Copyright Statement.
+
 ** In-File Options
 
 Followings are in-flie options. For EPUB outputs, various in-file
@@ -103,6 +112,11 @@ options can be used.
 
 ** Citation
 
-- Currently, Pandoc citation key is expressed as /@key/, rather than
-  /{\cite key}/ . You may need some text converter if you want to use
-  Pandoc citation styles in org document.
+Currently, Pandoc citation key is expressed as /@key/, rather than
+/{\cite key}/ . You may need some text converter if you want to use
+Pandoc citation styles in org document.
+
+* Note
+
+This file creates and removes "XXXX.tmpZZZZ.org" temprary file in
+working directory. (ZZZZ is random string.)

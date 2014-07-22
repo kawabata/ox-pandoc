@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.140722
+;; Version: 1.140723
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -28,6 +28,7 @@
 ;; |-------------------+--------+------|
 ;; | asciidoc          | t      | t    |
 ;; | beamer            | t      | t    |
+;; | beamer-pdf        | nil    | t    |
 ;; | context           | t      | t    |
 ;; | docbook           | t      | t    |
 ;; | docx              | nil    | t    |
@@ -40,6 +41,7 @@
 ;; | icml              | t      | t    |
 ;; | json              | t      | t    |
 ;; | latex             | t      | t    |
+;; | latex-pdf         | nil    | t    |
 ;; | man               | t      | t    |
 ;; | markdown          | t      | t    |
 ;; | markdown_github   | t      | t    |
@@ -70,15 +72,14 @@
 ;;
 ;; * Customizations
 ;;
-;; ** Variables
+;; ** Option Variables
 ;;
 ;; - =org-pandoc-options= :: General Pandoc options.
 ;; - =org-pandoc-options-for-FORMAT= :: Format-specific options.
-;; - =org-pandoc-epub-right= :: EPUB Copyright Statement.
 ;;
-;; Options should be specified by an alist. List of options are defined
-;; in 'org-pandoc-valid-options'. Note that shortend form can not be
-;; used.
+;; Options should be specified by an alist. List of valid options are
+;; defined in 'org-pandoc-valid-options'. Note that shortened form can
+;; not be used.
 ;;
 ;; Document-specific options can be set to "#+PANDOC_OPTIONS:" in the
 ;; document. Latter options will override former options. Value 'nil'
@@ -102,6 +103,13 @@
 ;;
 ;; : #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
 ;;
+;; ** Other Variables
+;;
+;; - =org-pandoc-after-processing-FORMAT-hook= :: Hook after processing
+;;      FORMAT. This hook is only available to text-file FORMAT.
+;;
+;; - =org-pandoc-epub-right= :: EPUB Copyright Statement.
+;;
 ;; ** In-File Options
 ;;
 ;; Followings are in-flie options. For EPUB outputs, various in-file
@@ -118,9 +126,14 @@
 ;;
 ;; ** Citation
 ;;
-;; - Currently, Pandoc citation key is expressed as /@key/, rather than
-;;   /{\cite key}/ . You may need some text converter if you want to use
-;;   Pandoc citation styles in org document.
+;; Currently, Pandoc citation key is expressed as /@key/, rather than
+;; /{\cite key}/ . You may need some text converter if you want to use
+;; Pandoc citation styles in org document.
+;;
+;; * Note
+;;
+;; This file creates and removes "XXXX.tmpZZZZ.org" temprary file in
+;; working directory. (ZZZZ is random string.)
 
 ;;; Code:
 
@@ -158,12 +171,15 @@
     citation-abbreviations data-dir))
 
 (defconst org-pandoc-extensions
-  '((beamer . tex) (context . tex) (dzslides . html)
-    (epub3 . epub) (html5 . html) (latex . tex)
-    (markdown . md) (markdown_github . md) (markdown_mmd . md)
-    (markdown_strict . md) (opendocument . odt) (plain . txt)
-    (revealjs . html) (s5 . html) (slideous . html)
-    (slidy . html)))
+  '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf) (context . tex)
+    (dzslides . html) (epub3 . epub) (html5 . html) (latex . tex)
+    (latex-pdf . pdf) (markdown . md) (markdown_github . md)
+    (markdown_mmd . md) (markdown_strict . md) (native . hs)
+    (opendocument . odt) (plain . txt) (revealjs . html) (s5 . html)
+    (slideous . html) (slidy . html)))
+
+(defconst org-pandoc-translate-output-format
+  '((beamer-pdf . beamer) (latex-pdf . latex)))
 
 (defcustom org-pandoc-options '((standalone . t)
                                 (table-of-contents . t))
@@ -180,7 +196,7 @@
   '(
     (?a "to asciidoc and open." org-pandoc-export-to-asciidoc-and-open)
     (?A "as asciidoc." org-pandoc-export-as-asciidoc)
-    (?b "to beamer and open." org-pandoc-export-to-beamer-and-open)
+    (?b "to beamer-pdf and open." org-pandoc-export-to-beamer-pdf-and-open)
     (?B "as beamer." org-pandoc-export-as-beamer)
     (?c "to context and open." org-pandoc-export-to-context-and-open)
     (?C "as context." org-pandoc-export-as-context)
@@ -201,7 +217,7 @@
     ;;(?I "as icml." org-pandoc-export-as-icml)
     (?j "to json and open." org-pandoc-export-to-json-and-open)
     (?J "as json." org-pandoc-export-as-json)
-    (?l "to latex and open." org-pandoc-export-to-latex-and-open)
+    (?l "to latex-pdf and open." org-pandoc-export-to-latex-pdf-and-open)
     (?L "as latex." org-pandoc-export-as-latex)
     (?1 "to man and open." org-pandoc-export-to-man-and-open)
     (?! "as man." org-pandoc-export-as-man)
@@ -279,16 +295,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-asciidoc-hook nil
+  "Hook called after processing asciidoc."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-asciidoc (&optional a s v b e)
+  "Export to asciidoc."
   (interactive) (org-pandoc-export 'asciidoc a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-asciidoc-and-open (&optional a s v b e)
+  "Export to asciidoc and open."
   (interactive) (org-pandoc-export 'asciidoc a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-asciidoc (&optional a s v b e)
+  "Export as asciidoc."
   (interactive) (org-pandoc-export 'asciidoc a s v b e t))
 
 (defcustom org-pandoc-options-for-beamer nil
@@ -296,33 +320,64 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-beamer-hook nil
+  "Hook called after processing beamer."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-beamer (&optional a s v b e)
+  "Export to beamer."
   (interactive) (org-pandoc-export 'beamer a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-beamer-and-open (&optional a s v b e)
+  "Export to beamer and open."
   (interactive) (org-pandoc-export 'beamer a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-beamer (&optional a s v b e)
+  "Export as beamer."
   (interactive) (org-pandoc-export 'beamer a s v b e t))
+
+(defcustom org-pandoc-options-for-beamer-pdf nil
+  "Pandoc options for beamer-pdf."
+  :group 'org-export-pandoc
+  :type 'list)
+
+;;;###autoload
+(defun org-pandoc-export-to-beamer-pdf (&optional a s v b e)
+  "Export to beamer-pdf."
+  (interactive) (org-pandoc-export 'beamer-pdf a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-beamer-pdf-and-open (&optional a s v b e)
+  "Export to beamer-pdf and open."
+  (interactive) (org-pandoc-export 'beamer-pdf a s v b e 0))
 
 (defcustom org-pandoc-options-for-context nil
   "Pandoc options for context."
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-context-hook nil
+  "Hook called after processing context."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-context (&optional a s v b e)
+  "Export to context."
   (interactive) (org-pandoc-export 'context a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-context-and-open (&optional a s v b e)
+  "Export to context and open."
   (interactive) (org-pandoc-export 'context a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-context (&optional a s v b e)
+  "Export as context."
   (interactive) (org-pandoc-export 'context a s v b e t))
 
 (defcustom org-pandoc-options-for-docbook nil
@@ -330,16 +385,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-docbook-hook nil
+  "Hook called after processing docbook."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-docbook (&optional a s v b e)
+  "Export to docbook."
   (interactive) (org-pandoc-export 'docbook a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-docbook-and-open (&optional a s v b e)
+  "Export to docbook and open."
   (interactive) (org-pandoc-export 'docbook a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-docbook (&optional a s v b e)
+  "Export as docbook."
   (interactive) (org-pandoc-export 'docbook a s v b e t))
 
 (defcustom org-pandoc-options-for-docx nil
@@ -349,10 +412,12 @@
 
 ;;;###autoload
 (defun org-pandoc-export-to-docx (&optional a s v b e)
+  "Export to docx."
   (interactive) (org-pandoc-export 'docx a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-docx-and-open (&optional a s v b e)
+  "Export to docx and open."
   (interactive) (org-pandoc-export 'docx a s v b e 0))
 
 (defcustom org-pandoc-options-for-dzslides nil
@@ -360,16 +425,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-dzslides-hook nil
+  "Hook called after processing dzslides."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-dzslides (&optional a s v b e)
+  "Export to dzslides."
   (interactive) (org-pandoc-export 'dzslides a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-dzslides-and-open (&optional a s v b e)
+  "Export to dzslides and open."
   (interactive) (org-pandoc-export 'dzslides a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-dzslides (&optional a s v b e)
+  "Export as dzslides."
   (interactive) (org-pandoc-export 'dzslides a s v b e t))
 
 (defcustom org-pandoc-options-for-epub nil
@@ -379,10 +452,12 @@
 
 ;;;###autoload
 (defun org-pandoc-export-to-epub (&optional a s v b e)
+  "Export to epub."
   (interactive) (org-pandoc-export 'epub a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-epub-and-open (&optional a s v b e)
+  "Export to epub and open."
   (interactive) (org-pandoc-export 'epub a s v b e 0))
 
 (defcustom org-pandoc-options-for-epub3 nil
@@ -392,10 +467,12 @@
 
 ;;;###autoload
 (defun org-pandoc-export-to-epub3 (&optional a s v b e)
+  "Export to epub3."
   (interactive) (org-pandoc-export 'epub3 a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-epub3-and-open (&optional a s v b e)
+  "Export to epub3 and open."
   (interactive) (org-pandoc-export 'epub3 a s v b e 0))
 
 (defcustom org-pandoc-options-for-fb2 nil
@@ -403,16 +480,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-fb2-hook nil
+  "Hook called after processing fb2."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-fb2 (&optional a s v b e)
+  "Export to fb2."
   (interactive) (org-pandoc-export 'fb2 a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-fb2-and-open (&optional a s v b e)
+  "Export to fb2 and open."
   (interactive) (org-pandoc-export 'fb2 a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-fb2 (&optional a s v b e)
+  "Export as fb2."
   (interactive) (org-pandoc-export 'fb2 a s v b e t))
 
 (defcustom org-pandoc-options-for-html nil
@@ -420,16 +505,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-html-hook nil
+  "Hook called after processing html."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-html (&optional a s v b e)
+  "Export to html."
   (interactive) (org-pandoc-export 'html a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-html-and-open (&optional a s v b e)
+  "Export to html and open."
   (interactive) (org-pandoc-export 'html a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-html (&optional a s v b e)
+  "Export as html."
   (interactive) (org-pandoc-export 'html a s v b e t))
 
 (defcustom org-pandoc-options-for-html5 nil
@@ -437,16 +530,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-html5-hook nil
+  "Hook called after processing html5."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-html5 (&optional a s v b e)
+  "Export to html5."
   (interactive) (org-pandoc-export 'html5 a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-html5-and-open (&optional a s v b e)
+  "Export to html5 and open."
   (interactive) (org-pandoc-export 'html5 a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-html5 (&optional a s v b e)
+  "Export as html5."
   (interactive) (org-pandoc-export 'html5 a s v b e t))
 
 (defcustom org-pandoc-options-for-icml nil
@@ -454,16 +555,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-icml-hook nil
+  "Hook called after processing icml."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-icml (&optional a s v b e)
+  "Export to icml."
   (interactive) (org-pandoc-export 'icml a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-icml-and-open (&optional a s v b e)
+  "Export to icml and open."
   (interactive) (org-pandoc-export 'icml a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-icml (&optional a s v b e)
+  "Export as icml."
   (interactive) (org-pandoc-export 'icml a s v b e t))
 
 (defcustom org-pandoc-options-for-json nil
@@ -471,16 +580,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-json-hook nil
+  "Hook called after processing json."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-json (&optional a s v b e)
+  "Export to json."
   (interactive) (org-pandoc-export 'json a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-json-and-open (&optional a s v b e)
+  "Export to json and open."
   (interactive) (org-pandoc-export 'json a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-json (&optional a s v b e)
+  "Export as json."
   (interactive) (org-pandoc-export 'json a s v b e t))
 
 (defcustom org-pandoc-options-for-latex nil
@@ -488,33 +605,64 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-latex-hook nil
+  "Hook called after processing latex."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-latex (&optional a s v b e)
+  "Export to latex."
   (interactive) (org-pandoc-export 'latex a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-latex-and-open (&optional a s v b e)
+  "Export to latex and open."
   (interactive) (org-pandoc-export 'latex a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-latex (&optional a s v b e)
+  "Export as latex."
   (interactive) (org-pandoc-export 'latex a s v b e t))
+
+(defcustom org-pandoc-options-for-latex-pdf nil
+  "Pandoc options for latex-pdf."
+  :group 'org-export-pandoc
+  :type 'list)
+
+;;;###autoload
+(defun org-pandoc-export-to-latex-pdf (&optional a s v b e)
+  "Export to latex-pdf."
+  (interactive) (org-pandoc-export 'latex-pdf a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-latex-pdf-and-open (&optional a s v b e)
+  "Export to latex-pdf and open."
+  (interactive) (org-pandoc-export 'latex-pdf a s v b e 0))
 
 (defcustom org-pandoc-options-for-man nil
   "Pandoc options for man."
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-man-hook nil
+  "Hook called after processing man."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-man (&optional a s v b e)
+  "Export to man."
   (interactive) (org-pandoc-export 'man a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-man-and-open (&optional a s v b e)
+  "Export to man and open."
   (interactive) (org-pandoc-export 'man a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-man (&optional a s v b e)
+  "Export as man."
   (interactive) (org-pandoc-export 'man a s v b e t))
 
 (defcustom org-pandoc-options-for-markdown nil
@@ -522,16 +670,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-markdown-hook nil
+  "Hook called after processing markdown."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-markdown (&optional a s v b e)
+  "Export to markdown."
   (interactive) (org-pandoc-export 'markdown a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-markdown-and-open (&optional a s v b e)
+  "Export to markdown and open."
   (interactive) (org-pandoc-export 'markdown a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-markdown (&optional a s v b e)
+  "Export as markdown."
   (interactive) (org-pandoc-export 'markdown a s v b e t))
 
 (defcustom org-pandoc-options-for-markdown_github nil
@@ -539,16 +695,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-markdown_github-hook nil
+  "Hook called after processing markdown_github."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_github (&optional a s v b e)
+  "Export to markdown_github."
   (interactive) (org-pandoc-export 'markdown_github a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_github-and-open (&optional a s v b e)
+  "Export to markdown_github and open."
   (interactive) (org-pandoc-export 'markdown_github a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-markdown_github (&optional a s v b e)
+  "Export as markdown_github."
   (interactive) (org-pandoc-export 'markdown_github a s v b e t))
 
 (defcustom org-pandoc-options-for-markdown_mmd nil
@@ -556,16 +720,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-markdown_mmd-hook nil
+  "Hook called after processing markdown_mmd."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_mmd (&optional a s v b e)
+  "Export to markdown_mmd."
   (interactive) (org-pandoc-export 'markdown_mmd a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_mmd-and-open (&optional a s v b e)
+  "Export to markdown_mmd and open."
   (interactive) (org-pandoc-export 'markdown_mmd a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-markdown_mmd (&optional a s v b e)
+  "Export as markdown_mmd."
   (interactive) (org-pandoc-export 'markdown_mmd a s v b e t))
 
 (defcustom org-pandoc-options-for-markdown_phpextra nil
@@ -573,16 +745,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-markdown_phpextra-hook nil
+  "Hook called after processing markdown_phpextra."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_phpextra (&optional a s v b e)
+  "Export to markdown_phpextra."
   (interactive) (org-pandoc-export 'markdown_phpextra a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_phpextra-and-open (&optional a s v b e)
+  "Export to markdown_phpextra and open."
   (interactive) (org-pandoc-export 'markdown_phpextra a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-markdown_phpextra (&optional a s v b e)
+  "Export as markdown_phpextra."
   (interactive) (org-pandoc-export 'markdown_phpextra a s v b e t))
 
 (defcustom org-pandoc-options-for-markdown_strict nil
@@ -590,16 +770,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-markdown_strict-hook nil
+  "Hook called after processing markdown_strict."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_strict (&optional a s v b e)
+  "Export to markdown_strict."
   (interactive) (org-pandoc-export 'markdown_strict a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-markdown_strict-and-open (&optional a s v b e)
+  "Export to markdown_strict and open."
   (interactive) (org-pandoc-export 'markdown_strict a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-markdown_strict (&optional a s v b e)
+  "Export as markdown_strict."
   (interactive) (org-pandoc-export 'markdown_strict a s v b e t))
 
 (defcustom org-pandoc-options-for-mediawiki nil
@@ -607,16 +795,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-mediawiki-hook nil
+  "Hook called after processing mediawiki."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-mediawiki (&optional a s v b e)
+  "Export to mediawiki."
   (interactive) (org-pandoc-export 'mediawiki a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-mediawiki-and-open (&optional a s v b e)
+  "Export to mediawiki and open."
   (interactive) (org-pandoc-export 'mediawiki a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-mediawiki (&optional a s v b e)
+  "Export as mediawiki."
   (interactive) (org-pandoc-export 'mediawiki a s v b e t))
 
 (defcustom org-pandoc-options-for-native nil
@@ -624,16 +820,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-native-hook nil
+  "Hook called after processing native."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-native (&optional a s v b e)
+  "Export to native."
   (interactive) (org-pandoc-export 'native a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-native-and-open (&optional a s v b e)
+  "Export to native and open."
   (interactive) (org-pandoc-export 'native a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-native (&optional a s v b e)
+  "Export as native."
   (interactive) (org-pandoc-export 'native a s v b e t))
 
 (defcustom org-pandoc-options-for-odt nil
@@ -643,15 +847,13 @@
 
 ;;;###autoload
 (defun org-pandoc-export-to-odt (&optional a s v b e)
+  "Export to odt."
   (interactive) (org-pandoc-export 'odt a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-odt-and-open (&optional a s v b e)
+  "Export to odt and open."
   (interactive) (org-pandoc-export 'odt a s v b e 0))
-
-;;;###autoload
-(defun org-pandoc-export-as-odt (&optional a s v b e)
-  (interactive) (org-pandoc-export 'odt a s v b e t))
 
 (defcustom org-pandoc-options-for-opendocument nil
   "Pandoc options for opendocument."
@@ -660,10 +862,12 @@
 
 ;;;###autoload
 (defun org-pandoc-export-to-opendocument (&optional a s v b e)
+  "Export to opendocument."
   (interactive) (org-pandoc-export 'opendocument a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-opendocument-and-open (&optional a s v b e)
+  "Export to opendocument and open."
   (interactive) (org-pandoc-export 'opendocument a s v b e 0))
 
 (defcustom org-pandoc-options-for-opml nil
@@ -671,16 +875,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-opml-hook nil
+  "Hook called after processing opml."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-opml (&optional a s v b e)
+  "Export to opml."
   (interactive) (org-pandoc-export 'opml a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-opml-and-open (&optional a s v b e)
+  "Export to opml and open."
   (interactive) (org-pandoc-export 'opml a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-opml (&optional a s v b e)
+  "Export as opml."
   (interactive) (org-pandoc-export 'opml a s v b e t))
 
 (defcustom org-pandoc-options-for-org nil
@@ -688,16 +900,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-org-hook nil
+  "Hook called after processing org."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-org (&optional a s v b e)
+  "Export to org."
   (interactive) (org-pandoc-export 'org a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-org-and-open (&optional a s v b e)
+  "Export to org and open."
   (interactive) (org-pandoc-export 'org a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-org (&optional a s v b e)
+  "Export as org."
   (interactive) (org-pandoc-export 'org a s v b e t))
 
 (defcustom org-pandoc-options-for-plain nil
@@ -705,16 +925,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-plain-hook nil
+  "Hook called after processing plain."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-plain (&optional a s v b e)
+  "Export to plain."
   (interactive) (org-pandoc-export 'plain a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-plain-and-open (&optional a s v b e)
+  "Export to plain and open."
   (interactive) (org-pandoc-export 'plain a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-plain (&optional a s v b e)
+  "Export as plain."
   (interactive) (org-pandoc-export 'plain a s v b e t))
 
 (defcustom org-pandoc-options-for-revealjs nil
@@ -722,16 +950,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-revealjs-hook nil
+  "Hook called after processing revealjs."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-revealjs (&optional a s v b e)
+  "Export to revealjs."
   (interactive) (org-pandoc-export 'revealjs a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-revealjs-and-open (&optional a s v b e)
+  "Export to revealjs and open."
   (interactive) (org-pandoc-export 'revealjs a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-revealjs (&optional a s v b e)
+  "Export as revealjs."
   (interactive) (org-pandoc-export 'revealjs a s v b e t))
 
 (defcustom org-pandoc-options-for-rst nil
@@ -739,16 +975,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-rst-hook nil
+  "Hook called after processing rst."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-rst (&optional a s v b e)
+  "Export to rst."
   (interactive) (org-pandoc-export 'rst a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-rst-and-open (&optional a s v b e)
+  "Export to rst and open."
   (interactive) (org-pandoc-export 'rst a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-rst (&optional a s v b e)
+  "Export as rst."
   (interactive) (org-pandoc-export 'rst a s v b e t))
 
 (defcustom org-pandoc-options-for-rtf nil
@@ -756,16 +1000,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-rtf-hook nil
+  "Hook called after processing rtf."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-rtf (&optional a s v b e)
+  "Export to rtf."
   (interactive) (org-pandoc-export 'rtf a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-rtf-and-open (&optional a s v b e)
+  "Export to rtf and open."
   (interactive) (org-pandoc-export 'rtf a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-rtf (&optional a s v b e)
+  "Export as rtf."
   (interactive) (org-pandoc-export 'rtf a s v b e t))
 
 (defcustom org-pandoc-options-for-s5 nil
@@ -773,16 +1025,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-s5-hook nil
+  "Hook called after processing s5."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-s5 (&optional a s v b e)
+  "Export to s5."
   (interactive) (org-pandoc-export 's5 a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-s5-and-open (&optional a s v b e)
+  "Export to s5 and open."
   (interactive) (org-pandoc-export 's5 a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-s5 (&optional a s v b e)
+  "Export as s5."
   (interactive) (org-pandoc-export 's5 a s v b e t))
 
 (defcustom org-pandoc-options-for-slideous nil
@@ -790,16 +1050,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-slideous-hook nil
+  "Hook called after processing slideous."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-slideous (&optional a s v b e)
+  "Export to slideous."
   (interactive) (org-pandoc-export 'slideous a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-slideous-and-open (&optional a s v b e)
+  "Export to slideous and open."
   (interactive) (org-pandoc-export 'slideous a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-slideous (&optional a s v b e)
+  "Export as slideous."
   (interactive) (org-pandoc-export 'slideous a s v b e t))
 
 (defcustom org-pandoc-options-for-slidy nil
@@ -807,16 +1075,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-slidy-hook nil
+  "Hook called after processing slidy."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-slidy (&optional a s v b e)
+  "Export to slidy."
   (interactive) (org-pandoc-export 'slidy a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-slidy-and-open (&optional a s v b e)
+  "Export to slidy and open."
   (interactive) (org-pandoc-export 'slidy a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-slidy (&optional a s v b e)
+  "Export as slidy."
   (interactive) (org-pandoc-export 'slidy a s v b e t))
 
 (defcustom org-pandoc-options-for-texinfo nil
@@ -824,16 +1100,24 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-texinfo-hook nil
+  "Hook called after processing texinfo."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-texinfo (&optional a s v b e)
+  "Export to texinfo."
   (interactive) (org-pandoc-export 'texinfo a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-texinfo-and-open (&optional a s v b e)
+  "Export to texinfo and open."
   (interactive) (org-pandoc-export 'texinfo a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-texinfo (&optional a s v b e)
+  "Export as texinfo."
   (interactive) (org-pandoc-export 'texinfo a s v b e t))
 
 (defcustom org-pandoc-options-for-textile nil
@@ -841,32 +1125,42 @@
   :group 'org-export-pandoc
   :type 'list)
 
+(defcustom org-pandoc-after-processing-textile-hook nil
+  "Hook called after processing textile."
+  :group 'org-export-pandoc
+  :type 'list)
+
 ;;;###autoload
 (defun org-pandoc-export-to-textile (&optional a s v b e)
+  "Export to textile."
   (interactive) (org-pandoc-export 'textile a s v b e))
 
 ;;;###autoload
 (defun org-pandoc-export-to-textile-and-open (&optional a s v b e)
+  "Export to textile and open."
   (interactive) (org-pandoc-export 'textile a s v b e 0))
 
 ;;;###autoload
 (defun org-pandoc-export-as-textile (&optional a s v b e)
+  "Export as textile."
   (interactive) (org-pandoc-export 'textile a s v b e t))
 
 
-;;; OX-Pandoc Main routine
+;;; ox-pandoc main routine
 
 (defvar org-pandoc-format nil)
 (defvar org-pandoc-option-table nil)
 (defvar org-pandoc-epub-metadata nil)
 
 (defun org-pandoc-export (format a s v b e &optional buf-or-open)
-  "General interface for Pandoc Export."
+  "General interface for Pandoc Export.
+If BUF-OR-OPEN is nil, output to file.  0, then open the file.
+t means output to buffer."
   (unless (equal major-mode 'org-mode)
     (error "You must run this command in org-mode!"))
   (setq org-pandoc-format format)
   (org-export-to-file 'pandoc (org-export-output-file-name
-                               ".tmp.org" s)
+                               (concat (make-temp-name ".tmp") ".org") s)
     a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
 
 (defun org-pandoc-template (contents info)
@@ -926,7 +1220,9 @@ Option table is created in this stage."
                          (or (assoc-default format org-pandoc-extensions)
                              format)))
             subtreep)))
-        (metadata-file (make-temp-file "org-pandoc" nil ".xml")))
+        (metadata-file (make-temp-file "org-pandoc" nil ".xml"))
+        (local-hook-symbol (intern (format "org-pandoc-after-processing-%s-hook"
+                                           format))))
     (when (bufferp output-buffer-or-file)
       (with-current-buffer output-buffer-or-file (erase-buffer)))
     (when (and (or (equal org-pandoc-format 'epub) (equal org-pandoc-format 'epub3))
@@ -934,13 +1230,22 @@ Option table is created in this stage."
       (puthash 'epub-metadata metadata-file org-pandoc-option-table)
       (with-temp-file metadata-file
         (insert org-pandoc-epub-metadata)))
-    (org-pandoc-run input-file output-buffer-or-file format org-pandoc-option-table)
+    (org-pandoc-run input-file output-buffer-or-file format
+                    org-pandoc-option-table)
     (delete-file input-file)
     (if (file-exists-p metadata-file) (delete-file metadata-file))
     (when (bufferp output-buffer-or-file)
       (pop-to-buffer output-buffer-or-file)
+      (run-hooks local-hook-symbol)
       (set-auto-mode))
-    (if (equal 0 buffer-or-open) (org-open-file output-buffer-or-file))))
+    (if (and (not (bufferp output-buffer-or-file))
+             (boundp local-hook-symbol)
+             (symbol-value local-hook-symbol))
+        (with-temp-file output-buffer-or-file
+          (insert-file-contents output-buffer-or-file)
+          (run-hooks local-hook-symbol)))
+    (if (equal 0 buffer-or-open) (org-open-file
+                                  output-buffer-or-file))))
 
 (defun org-pandoc-run (input-file buffer-or-file format &optional options)
   "Run pandoc command with INPUT-FILE (org), BUFFER-OR-FILE, FORMAT and OPTIONS.
@@ -948,7 +1253,9 @@ If BUFFER-OR-FILE is buffer, then output to specified buffer.
 OPTIONS is a hashtable."
   (let ((args
          `("-f" "org"
-           "-t" ,(symbol-name format)
+           "-t" ,(symbol-name
+                  (or (assoc-default format org-pandoc-translate-output-format)
+                      format))
            ,@(unless (bufferp buffer-or-file)
                (list "-o" (expand-file-name buffer-or-file)))
            ,@(--mapcat
