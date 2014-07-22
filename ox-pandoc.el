@@ -18,6 +18,8 @@
 ;; This is another exporter for Org 8 that translates org-mode file to
 ;; various other formats via Pandoc (version 1.12.4 or later is needed).
 ;;
+;; This file is inspired by [[https://github.com/robtillotson/org-pandoc][org-pandoc]], but entirely re-written.
+;;
 ;; * Usage
 ;;
 ;; Exporters for following formats are available.
@@ -60,10 +62,11 @@
 ;; | texinfo           | t      | t    |
 ;; | textile           | t      | t    |
 ;;
-;; For example, for 'html5', two exporters are prepared.
+;; For example, for 'html5' format, two exporters are prepared.
 ;;
-;; - =org-pandoc-export-as-html=  :: Exports the HTML text to a buffer.
-;; - =org-pandoc-export-to-html=  :: Exports the HTML text to a file.
+;; - =org-pandoc-export-as-html5= :: Exports the HTML text to a buffer.
+;; - =org-pandoc-export-to-html5= :: Exports the HTML text to a file.
+;; - =org-pandoc-export-to-html5-and-open= :: Export and open HTML file.
 ;;
 ;; * Customizations
 ;;
@@ -79,7 +82,7 @@
 ;;
 ;; Document-specific options can be set to "#+PANDOC_OPTIONS:" in the
 ;; document. Latter options will override former options. Value 'nil'
-;; overrides precedent option setting. Value 't' means only specify
+;; overrides preceding option setting. Value 't' means only specify
 ;; option, but not its value.
 ;;
 ;; Following is an example.
@@ -105,17 +108,13 @@
 ;; options can be used.
 ;;
 ;; - =PANDOC_OPTIONS= :: Add command line options to the Pandoc process.
-;; - =EPUB_RIGHTS:= :: copyright info to be embedded to ePub metadata.
+;; - =EPUB_RIGHTS:= :: copyright info to be embedded to EPUB metadata.
 ;; - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
 ;; - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
 ;; - =EPUB_EMBED_FONT:= :: same as 'epub-embed-font' pandoc-option.
 ;; - =EPUB_METADATA:= :: same as 'epub-metadata' pandoc-option.
 ;; - =EPUB_STYLESHEET= :: same as 'epub-stylesheet' pandoc-option.
 ;; - =BIBLIOGRAPHY= :: same as 'bibliography' pandoc-option.
-;;
-;; ** Note
-;;
-;; This file is inspired by [[https://github.com/robtillotson/org-pandoc][org-pandoc]], but entirely re-written.
 ;;
 ;; ** Citation
 ;;
@@ -866,7 +865,8 @@
   (unless (equal major-mode 'org-mode)
     (error "You must run this command in org-mode!"))
   (setq org-pandoc-format format)
-  (org-export-to-file 'pandoc (make-temp-file "org-pandoc" nil ".org")
+  (org-export-to-file 'pandoc (org-export-output-file-name
+                               ".tmp.org" s)
     a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
 
 (defun org-pandoc-template (contents info)

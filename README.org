@@ -51,6 +51,7 @@ For example, for 'html5' format, two exporters are prepared.
 
 - =org-pandoc-export-as-html5= :: Exports the HTML text to a buffer.
 - =org-pandoc-export-to-html5= :: Exports the HTML text to a file.
+- =org-pandoc-export-to-html5-and-open= :: Export and open HTML file.
 
 * Customizations
 
@@ -99,7 +100,6 @@ options can be used.
 - =EPUB_METADATA:= :: same as 'epub-metadata' pandoc-option.
 - =EPUB_STYLESHEET= :: same as 'epub-stylesheet' pandoc-option.
 - =BIBLIOGRAPHY= :: same as 'bibliography' pandoc-option.
-
 
 ** Citation
 
