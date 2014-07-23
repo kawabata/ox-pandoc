@@ -10,47 +10,47 @@ This file is inspired by [[https://github.com/robtillotson/org-pandoc][org-pando
 
 Exporters for following formats are available.
 
-| format            | buffer | file |
-|-------------------+--------+------|
-| asciidoc          | t      | t    |
-| beamer            | t      | t    |
-| beamer-pdf        | nil    | t    |
-| context           | t      | t    |
-| docbook           | t      | t    |
-| docx              | nil    | t    |
-| dzslides          | t      | t    |
-| epub              | nil    | t    |
-| epub3             | nil    | t    |
-| fb2               | t      | t    |
-| html              | t      | t    |
-| html5             | t      | t    |
-| icml              | t      | t    |
-| json              | t      | t    |
-| latex             | t      | t    |
-| latex-pdf         | nil    | t    |
-| man               | t      | t    |
-| markdown          | t      | t    |
-| markdown_github   | t      | t    |
-| markdown_mmd      | t      | t    |
-| markdown_phpextra | t      | t    |
-| markdown_strict   | t      | t    |
-| mediawiki         | t      | t    |
-| native            | t      | t    |
-| odt               | nil    | t    |
-| opendocument      | nil    | t    |
-| opml              | t      | t    |
-| org               | t      | t    |
-| plain             | t      | t    |
-| revealjs          | t      | t    |
-| rst               | t      | t    |
-| rtf               | t      | t    |
-| s5                | t      | t    |
-| slideous          | t      | t    |
-| slidy             | t      | t    |
-| texinfo           | t      | t    |
-| textile           | t      | t    |
+| format            | extension | buffer | file |
+|-------------------+-----------+--------+------|
+| asciidoc          | txt       | t      | t    |
+| beamer            | tex       | t      | t    |
+| beamer-pdf        | pdf       | nil    | t    |
+| context           | tex       | t      | t    |
+| docbook           | xml       | t      | t    |
+| docx              |           | nil    | t    |
+| dzslides          | html      | t      | t    |
+| epub              |           | nil    | t    |
+| epub3             | epub      | nil    | t    |
+| fb2               | fb2       | t      | t    |
+| html              |           | t      | t    |
+| html5             | html      | t      | t    |
+| icml              |           | t      | t    |
+| json              |           | t      | t    |
+| latex             | tex       | t      | t    |
+| latex-pdf         | pdf       | nil    | t    |
+| man               |           | t      | t    |
+| markdown          | md        | t      | t    |
+| markdown_github   | md        | t      | t    |
+| markdown_mmd      | md        | t      | t    |
+| markdown_phpextra | md        | t      | t    |
+| markdown_strict   | md        | t      | t    |
+| mediawiki         |           | t      | t    |
+| native            | hs        | t      | t    |
+| odt               |           | nil    | t    |
+| opendocument      | xml       | t      | t    |
+| opml              |           | t      | t    |
+| org               |           | t      | t    |
+| plain             | txt       | t      | t    |
+| revealjs          | html      | t      | t    |
+| rst               |           | t      | t    |
+| rtf               |           | t      | t    |
+| s5                | html      | t      | t    |
+| slideous          | html      | t      | t    |
+| slidy             | html      | t      | t    |
+| texinfo           |           | t      | t    |
+| textile           |           | t      | t    |
 
-For example, for 'html5' format, two exporters are prepared.
+For example, for 'html5' format, following exporters are prepared.
 
 - =org-pandoc-export-as-html5= :: Exports the HTML text to a buffer.
 - =org-pandoc-export-to-html5= :: Exports the HTML text to a file.
@@ -78,14 +78,18 @@ Following is an example.
 : (setq org-pandoc-options '((standalone . t)))
 : ;; cancel above settings only for 'docx' format
 : (setq org-pandoc-options-for-docx '((standalone . nil)))
+: ;; special settings for beamer-pdf and latex-pdf exporters
+: (setq org-pandoc-options-for-beamer-pdf '((latex-engine . "xelatex")))
+: (setq org-pandoc-options-for-latex-pdf '((latex-engine . "xelatex")))
 
 Each document can set its own customization variable.
 
 : # following will only apply to specific document.
-: #+PANDOC_OPTIONS: standalone:t
+: #+PANDOC_OPTIONS: standalone:t latex-engine:xelatex
 
-In PANDOC_OPTIONS specification, if option value includes space, you
-can surround entire setting with quote. e.g.
+In PANDOC_OPTIONS specification, options are delimited by space. If an
+option value includes space character, then you can surround /entire/
+setting with quote. e.g.
 
 : #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
 
@@ -101,14 +105,14 @@ can surround entire setting with quote. e.g.
 Followings are in-flie options. For EPUB outputs, various in-file
 options can be used.
 
-- =PANDOC_OPTIONS= :: Add command line options to the Pandoc process.
+- =PANDOC_OPTIONS:= :: Add command line options to the Pandoc process.
 - =EPUB_RIGHTS:= :: copyright info to be embedded to EPUB metadata.
 - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
 - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
 - =EPUB_EMBED_FONT:= :: same as 'epub-embed-font' pandoc-option.
 - =EPUB_METADATA:= :: same as 'epub-metadata' pandoc-option.
-- =EPUB_STYLESHEET= :: same as 'epub-stylesheet' pandoc-option.
-- =BIBLIOGRAPHY= :: same as 'bibliography' pandoc-option.
+- =EPUB_STYLESHEET:= :: same as 'epub-stylesheet' pandoc-option.
+- =BIBLIOGRAPHY:= :: same as 'bibliography' pandoc-option.
 
 ** Citation
 

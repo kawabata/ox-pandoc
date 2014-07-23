@@ -175,7 +175,7 @@
     (dzslides . html) (epub3 . epub) (html5 . html) (latex . tex)
     (latex-pdf . pdf) (markdown . md) (markdown_github . md)
     (markdown_mmd . md) (markdown_strict . md) (native . hs)
-    (opendocument . odt) (plain . txt) (revealjs . html) (s5 . html)
+    (opendocument . xml) (plain . txt) (revealjs . html) (s5 . html)
     (slideous . html) (slidy . html)))
 
 (defconst org-pandoc-translate-output-format
@@ -1157,7 +1157,9 @@
 If BUF-OR-OPEN is nil, output to file.  0, then open the file.
 t means output to buffer."
   (unless (equal major-mode 'org-mode)
-    (error "You must run this command in org-mode!"))
+    (error "You must run this command in org-mode."))
+  (unless (executable-find org-pandoc-command)
+    (error "Pandoc (version 1.12.4 or later) can not be found."))
   (setq org-pandoc-format format)
   (org-export-to-file 'pandoc (org-export-output-file-name
                                (concat (make-temp-name ".tmp") ".org") s)
