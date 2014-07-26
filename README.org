@@ -65,7 +65,11 @@ For example, for 'html5' format, following exporters are prepared.
 
 Options should be specified by an alist. List of valid options are
 defined in 'org-pandoc-valid-options'. Note that shortened form can
-not be used.
+not be used. Multiple values can be specified to options defined in
+'org-pandoc-colon-separated-options'. They should be defined in
+colon-separated list. Options defined in 'org-pandoc-file-options'
+will be expanded to full path before they are passed to pandoc
+processor.
 
 Document-specific options can be set to "#+PANDOC_OPTIONS:" in the
 document. Latter options will override former options. Value 'nil'
@@ -109,10 +113,23 @@ options can be used.
 - =EPUB_RIGHTS:= :: copyright info to be embedded to EPUB metadata.
 - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
 - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
-- =EPUB_EMBED_FONT:= :: same as 'epub-embed-font' pandoc-option.
-- =EPUB_METADATA:= :: same as 'epub-metadata' pandoc-option.
-- =EPUB_STYLESHEET:= :: same as 'epub-stylesheet' pandoc-option.
-- =BIBLIOGRAPHY:= :: same as 'bibliography' pandoc-option.
+- =EPUB_FONT:= :: same as 'epub-embed-font' pandoc-option. Only one
+                  font can be specified in each line. Multiple fonts
+                  can be specified by repeatingly use this option.
+- =EPUB_META:= :: put contents into a temporary file and specify
+                  that file to 'epub-metadata' option.
+- =EPUB_CSS:= :: put contents into a temporary file and specify
+                 that file to 'epub-stylesheet' option.
+- =BIBLIOGRAPHY:= :: same as 'bibliography' pandoc-option. Only one
+     bibliography can be specified in each line. Multiple fonts can be
+     specified by repeatingly use this option.
+
+** Obsolete In-File Options
+
+- =EPUB_METADATA:= :: obsolete. Use 'epub-metadata' in
+     =PANDOC_OPTIONS:= instead.
+- =EPUB_STYLESHEET:= :: obsolete. Use 'epub-stylesheet' in
+     =PANDOC_OPTIONS:= instead.
 
 ** Citation
 
@@ -122,5 +139,6 @@ Pandoc citation styles in org document.
 
 * Note
 
-This file creates and removes "XXXX.tmpZZZZ.org" temprary file in
-working directory. (ZZZZ is random string.)
+This file creates and removes "XXXX.tmpZZZZ.org" and
+"XXXX.tmpZZZZ.css" (if necessary) temprary files in working directory.
+(ZZZZ is random string.)

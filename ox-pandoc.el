@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.140724
+;; Version: 1.140726
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -79,7 +79,11 @@
 ;;
 ;; Options should be specified by an alist. List of valid options are
 ;; defined in 'org-pandoc-valid-options'. Note that shortened form can
-;; not be used.
+;; not be used. Multiple values can be specified to options defined in
+;; 'org-pandoc-colon-separated-options'. They should be defined in
+;; colon-separated list. Options defined in 'org-pandoc-file-options'
+;; will be expanded to full path before they are passed to pandoc
+;; processor.
 ;;
 ;; Document-specific options can be set to "#+PANDOC_OPTIONS:" in the
 ;; document. Latter options will override former options. Value 'nil'
@@ -123,10 +127,23 @@
 ;; - =EPUB_RIGHTS:= :: copyright info to be embedded to EPUB metadata.
 ;; - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
 ;; - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
-;; - =EPUB_EMBED_FONT:= :: same as 'epub-embed-font' pandoc-option.
-;; - =EPUB_METADATA:= :: same as 'epub-metadata' pandoc-option.
-;; - =EPUB_STYLESHEET:= :: same as 'epub-stylesheet' pandoc-option.
-;; - =BIBLIOGRAPHY:= :: same as 'bibliography' pandoc-option.
+;; - =EPUB_FONT:= :: same as 'epub-embed-font' pandoc-option. Only one
+;;                   font can be specified in each line. Multiple fonts
+;;                   can be specified by repeatingly use this option.
+;; - =EPUB_META:= :: put contents into a temporary file and specify
+;;                   that file to 'epub-metadata' option.
+;; - =EPUB_CSS:= :: put contents into a temporary file and specify
+;;                  that file to 'epub-stylesheet' option.
+;; - =BIBLIOGRAPHY:= :: same as 'bibliography' pandoc-option. Only one
+;;      bibliography can be specified in each line. Multiple fonts can be
+;;      specified by repeatingly use this option.
+;;
+;; ** Obsolete In-File Options
+;;
+;; - =EPUB_METADATA:= :: obsolete. Use 'epub-metadata' in
+;;      =PANDOC_OPTIONS:= instead.
+;; - =EPUB_STYLESHEET:= :: obsolete. Use 'epub-stylesheet' in
+;;      =PANDOC_OPTIONS:= instead.
 ;;
 ;; ** Citation
 ;;
@@ -136,8 +153,9 @@
 ;;
 ;; * Note
 ;;
-;; This file creates and removes "XXXX.tmpZZZZ.org" temprary file in
-;; working directory. (ZZZZ is random string.)
+;; This file creates and removes "XXXX.tmpZZZZ.org" and
+;; "XXXX.tmpZZZZ.css" (if necessary) temprary files in working directory.
+;; (ZZZZ is random string.)
 
 ;;; Code:
 
@@ -168,6 +186,10 @@
     slide-level smart standalone tab-stop table-of-contents template
     title-prefix to toc-depth variable version webtex))
 
+(defconst org-pandoc-colon-separated-options
+  '(include-in-header include-before-body include-after-body css
+    epub-embed-font bibliography))
+
 (defconst org-pandoc-file-options
   '(template include-in-header include-before-body include-after-body
     reference-odt reference-docx epub-stylesheet epub-cover-image
@@ -185,8 +207,7 @@
 (defconst org-pandoc-translate-output-format
   '((beamer-pdf . beamer) (latex-pdf . latex)))
 
-(defcustom org-pandoc-options '((standalone . t)
-                                (latex-engine . "lualatex"))
+(defcustom org-pandoc-options '((standalone . t))
   "Pandoc options."
   :group 'org-pandoc
   :type 'list)
@@ -317,9 +338,9 @@
   '((:pandoc-options "PANDOC_OPTIONS" nil nil space)
     (:epub-chapter-level "EPUB_CHAPTER_LEVEL" nil nil t)
     (:epub-cover-image "EPUB_COVER" nil nil t)
-    (:epub-embed-font "EPUB_EMBED_FONT" nil nil t)
-    (:epub-metadata "EPUB_METADATA" nil nil t)
-    (:epub-stylesheet "EPUB_STYLESHEET" nil nil t)
+    (:epub-embed-font "EPUB_EMBED_FONT" nil nil newline)
+    (:epub-meta "EPUB_META" nil nil newline)
+    (:epub-css "EPUB_CSS" nil nil newline)
     (:epub-rights "EPUB_RIGHTS" nil nil newline)
     (:bibliography "BIBLIOGRAPHY")))
 
@@ -1193,7 +1214,8 @@
 
 (defvar org-pandoc-format nil)
 (defvar org-pandoc-option-table nil)
-(defvar org-pandoc-epub-metadata nil)
+(defvar org-pandoc-epub-meta nil)
+(defvar org-pandoc-epub-css nil)
 
 (defun org-pandoc-export (format a s v b e &optional buf-or-open)
   "General interface for Pandoc Export.
@@ -1219,42 +1241,48 @@ Option table is created in this stage."
   ;; file options
   (-when-let (pandoc-options (plist-get info :pandoc-options))
     (org-pandoc-put-options
-     (--map (let* ((split (split-string it ":"))
-                   (name (intern (car split)))
-                   (value (cadr split)))
+     (--map (let* ((_match (string-match "^\\([^:]+\\):\\(.+\\)$" it))
+                   (name (intern (match-string 1 it)))
+                   (value (match-string 2 it)))
+              (message "name=%s value=%s" name value)
               (cons name value))
             (split-string-and-unquote pandoc-options))))
-  (setq org-pandoc-epub-metadata
-        (concat
-         (-when-let (epub-rights (or (plist-get info :epub-rights)
-                                     org-pandoc-epub-rights))
-           (concat "<dc:rights>" epub-rights "</dc:rights>\n"))
-         (-when-let (description (plist-get info :description))
-           (concat "<dc:description>" description "</dc:description>\n"))
-         (-when-let (description (plist-get info :keywords))
-           (concat "<dc:subject>" description "</dc:subject>\n"))))
+  (setq org-pandoc-epub-css (plist-get info :epub-css))
+  (setq org-pandoc-epub-meta
+        (or (plist-get info :epub-meta)
+            (concat
+             (-when-let (epub-rights (or (plist-get info :epub-rights)
+                                         org-pandoc-epub-rights))
+               (concat "<dc:rights>" epub-rights "</dc:rights>\n"))
+             (-when-let (description (plist-get info :description))
+               (concat "<dc:description>" description "</dc:description>\n"))
+             (-when-let (description (plist-get info :keywords))
+               (concat "<dc:subject>" description "</dc:subject>\n")))))
   (org-pandoc-put-options
    (--mapcat (-when-let (val (plist-get info (cdr it)))
-               (list (cons (car it) val)))
-             '((epub-chapter-level . :epub-chapter-level)
+               (list (cons (car it) (split-string val "\n"))))
+             '((epub-embed-font .    :epub-embed-font)
+               (epub-chapter-level . :epub-chapter-level)
                (epub-cover-image   . :epub-cover-image)
-               (epub-embed-font    . :epub-embed-font)
-               (epub-metadata      . :epub-metadata)
-               (epub-stylesheet    . :epub-stylesheet)
-               (bibliography       . :bibliography))))
+               (bibliography .       :bibliography))))
   contents)
 
 (defun org-pandoc-put-options (options)
   (dolist (option options)
-    (let ((name (car option))
-          (value (cdr option)))
-      (if (equal "t" value) (setq value t))
-      (if (equal "nil" value) (setq value nil))
-      (unless (memq name org-pandoc-valid-options)
-        (error "Org-Pandoc: Improper Option Name! %s" name))
+    (let* ((name (car option))
+           (value (cdr option))
+           (values
+            (cond ((not (memq name org-pandoc-valid-options))
+                   (error "Org-Pandoc: Improper Option Name! %s" name))
+                  ((equal "t" value) t)
+                  ((equal "nil" value) nil)
+                  ((listp value) value)
+                  ((memq name org-pandoc-colon-separated-options)
+                   (split-string value ":"))
+                  (t (list value)))))
       (if (memq name org-pandoc-file-options)
-          (setq value (expand-file-name value)))
-      (puthash name value org-pandoc-option-table))))
+          (setq values (mapcar 'expand-file-name values)))
+      (puthash name values org-pandoc-option-table))))
 
 (defun org-pandoc-run-to-buffer-or-file
     (input-file format subtreep &optional buffer-or-open)
@@ -1265,20 +1293,30 @@ Option table is created in this stage."
                          (or (assoc-default format org-pandoc-extensions)
                              format)))
             subtreep)))
-        (metadata-file (make-temp-file "org-pandoc" nil ".xml"))
         (local-hook-symbol (intern (format "org-pandoc-after-processing-%s-hook"
-                                           format))))
+                                           format)))
+        css-temp-file meta-temp-file)
     (when (bufferp output-buffer-or-file)
       (with-current-buffer output-buffer-or-file (erase-buffer)))
-    (when (and (or (equal org-pandoc-format 'epub) (equal org-pandoc-format 'epub3))
-               (null (gethash 'epub-metadata org-pandoc-option-table)))
-      (puthash 'epub-metadata metadata-file org-pandoc-option-table)
-      (with-temp-file metadata-file
-        (insert org-pandoc-epub-metadata)))
+    (when (or (equal org-pandoc-format 'epub)
+              (equal org-pandoc-format 'epub3))
+      (when org-pandoc-epub-css
+        (setq css-temp-file (make-temp-file "org-pandoc" nil ".css"))
+        (puthash 'epub-stylesheet
+                 (append (gethash 'epub-stylesheet org-pandoc-option-table)
+                         (list css-temp-file))
+                 org-pandoc-option-table)
+        (with-temp-file css-temp-file
+          (insert org-pandoc-epub-css)))
+      (when org-pandoc-epub-meta
+        (setq meta-temp-file (make-temp-file "org-pandoc" nil ".xml"))
+        (org-pandoc-put-options `((epub-metadata ,meta-temp-file)))
+        (with-temp-file meta-temp-file
+          (insert org-pandoc-epub-meta))))
     (org-pandoc-run input-file output-buffer-or-file format
                     org-pandoc-option-table)
-    (delete-file input-file)
-    (if (file-exists-p metadata-file) (delete-file metadata-file))
+    (dolist (file (list input-file meta-temp-file css-temp-file))
+      (if (and file (file-exists-p file)) (delete-file file)))
     (when (bufferp output-buffer-or-file)
       (pop-to-buffer output-buffer-or-file)
       (run-hooks local-hook-symbol)
@@ -1289,8 +1327,8 @@ Option table is created in this stage."
         (with-temp-file output-buffer-or-file
           (insert-file-contents output-buffer-or-file)
           (run-hooks local-hook-symbol)))
-    (if (equal 0 buffer-or-open) (org-open-file
-                                  output-buffer-or-file))))
+    (if (equal 0 buffer-or-open)
+        (org-open-file output-buffer-or-file))))
 
 (defun org-pandoc-run (input-file buffer-or-file format &optional options)
   "Run pandoc command with INPUT-FILE (org), BUFFER-OR-FILE, FORMAT and OPTIONS.
@@ -1303,12 +1341,13 @@ OPTIONS is a hashtable."
                       format))
            ,@(unless (bufferp buffer-or-file)
                (list "-o" (expand-file-name buffer-or-file)))
-           ,@(--mapcat
-              (-when-let (val (gethash it options))
-                (list
-                 (concat "--" (symbol-name it)
-                         (when (stringp val) (concat "=" val)))))
-              (ht-keys options))
+           ,@(-mapcat (lambda (key)
+                        (-when-let (vals (gethash key options))
+                          (if (equal vals t) (setq vals (list t)))
+                          (--map (concat "--" (symbol-name key)
+                                         (when (not (equal it t)) (format "=%s" it)))
+                                 vals)))
+                      (ht-keys options))
            ,(expand-file-name input-file))))
     (message "Running pandoc with args: %s" args)
     (let ((return
