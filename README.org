@@ -102,7 +102,7 @@ setting with quote. e.g.
 - =org-pandoc-after-processing-FORMAT-hook= :: Hook after processing
      FORMAT. This hook is only available to text-file FORMAT.
 
-- =org-pandoc-epub-right= :: EPUB Copyright Statement.
+- =org-pandoc-epub-rights= :: EPUB Copyright Statement.
 
 ** In-File Options
 
@@ -115,14 +115,14 @@ options can be used.
 - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
 - =EPUB_FONT:= :: same as 'epub-embed-font' pandoc-option. Only one
                   font can be specified in each line. Multiple fonts
-                  can be specified by repeatingly use this option.
+                  can be specified by repeatedly use this option.
 - =EPUB_META:= :: put contents into a temporary file and specify
                   that file to 'epub-metadata' option.
 - =EPUB_CSS:= :: put contents into a temporary file and specify
                  that file to 'epub-stylesheet' option.
 - =BIBLIOGRAPHY:= :: same as 'bibliography' pandoc-option. Only one
-     bibliography can be specified in each line. Multiple fonts can be
-     specified by repeatingly use this option.
+     bibliography can be specified in each line. Multiple
+     bibliographies can be specified by repeatedly use this option.
 
 ** Obsolete In-File Options
 
