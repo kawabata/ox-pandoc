@@ -153,7 +153,8 @@ You can install this tool with [[melpa.milkbox.net][MELPA]].  For example,
 ** org-pandoc
 
 This file is inspired by [[https://github.com/robtillotson/org-pandoc][org-pandoc]], but entirely re-written. This
-tool prepares various commands for all pandoc software.
+tool prepares various export commands for all formats supported by
+pandoc.
 
 * Note
 
