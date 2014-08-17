@@ -1,14 +1,12 @@
-#+TITLE: ox-pandoc
-* ox-pandoc
+* ox-pandoc Overview
 
-This is another exporter for Org 8 that translates org-mode file to
-various other formats via Pandoc (version 1.12.4 or later is needed).
+This is another exporter that translates Org-mode file to various
+other formats via Pandoc.
 
-This file is inspired by [[https://github.com/robtillotson/org-pandoc][org-pandoc]], but entirely re-written.
+* Description
 
-* Usage
-
-Exporters for following formats are available.
+You can convert Org-mode file to various formats with simple commands.
+Following table shows the supported fromats.
 
 | format            | extension | buffer | file |
 |-------------------+-----------+--------+------|
@@ -50,66 +48,71 @@ Exporters for following formats are available.
 | texinfo           |           | t      | t    |
 | textile           |           | t      | t    |
 
-For example, for 'html5' format, following exporters are prepared.
+* Requirement
+
+You need Emacs 24, Pandoc 1.12.4 or later.
+
+* Usage
+
+** Running the Commands
+
+For example, to convert org-mode file to 'html5' format, you can run
+the following commands.
 
 - =org-pandoc-export-as-html5= :: Exports the HTML text to a buffer.
 - =org-pandoc-export-to-html5= :: Exports the HTML text to a file.
 - =org-pandoc-export-to-html5-and-open= :: Export and open HTML file.
 
-* Customizations
+Similar commands are prepared for various formats.
 
-** Option Variables
+** Customizing User Option Variables
+
+You can specify the default options for each document format and
+hooks.
 
 - =org-pandoc-options= :: General Pandoc options.
 - =org-pandoc-options-for-FORMAT= :: Format-specific options.
-
-Options should be specified by an alist. List of valid options are
-defined in 'org-pandoc-valid-options'. Note that shortened form can
-not be used. Multiple values can be specified to options defined in
-'org-pandoc-colon-separated-options'. They should be defined in
-colon-separated list. Options defined in 'org-pandoc-file-options'
-will be expanded to full path before they are passed to pandoc
-processor.
-
-Document-specific options can be set to "#+PANDOC_OPTIONS:" in the
-document. Latter options will override former options. Value 'nil'
-overrides preceding option setting. Value 't' means only specify
-option, but not its value.
-
-Following is an example.
-
-: ;; default options for all output formats
-: (setq org-pandoc-options '((standalone . t)))
-: ;; cancel above settings only for 'docx' format
-: (setq org-pandoc-options-for-docx '((standalone . nil)))
-: ;; special settings for beamer-pdf and latex-pdf exporters
-: (setq org-pandoc-options-for-beamer-pdf '((latex-engine . "xelatex")))
-: (setq org-pandoc-options-for-latex-pdf '((latex-engine . "xelatex")))
-
-Each document can set its own customization variable.
-
-: # following will only apply to specific document.
-: #+PANDOC_OPTIONS: standalone:t latex-engine:xelatex
-
-In PANDOC_OPTIONS specification, options are delimited by space. If an
-option value includes space character, then you can surround /entire/
-setting with quote. e.g.
-
-: #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
-
-** Other Variables
-
 - =org-pandoc-after-processing-FORMAT-hook= :: Hook after processing
-     FORMAT. This hook is only available to text-file FORMAT.
-
+     =FORMAT=. This hook is only available to text-file =FORMAT=.
 - =org-pandoc-epub-rights= :: EPUB Copyright Statement.
 
-** In-File Options
+Options should be specified by an alist. List of valid options are
+defined in =org-pandoc-valid-options=. Only long-name options can be
+used. =after-processing= options can not be specified to =epub=,
+=docx= or =pdf= formats. For preprocessing hooks, use
+=org-export-before-processing-hook=.
 
-Followings are in-flie options. For EPUB outputs, various in-file
-options can be used.
+Multiple values can be specified to options defined in
+=org-pandoc-colon-separated-options=. They should be defined in
+colon-separated list.
+
+Options defined in =org-pandoc-file-options= will be expanded to full
+path if they begin with =~= (tilde) character.
+
+For example:
+
+#+BEGIN_SRC emacs-lisp
+;; default options for all output formats
+(setq org-pandoc-options '((standalone . t)))
+;; cancel above settings only for 'docx' format
+(setq org-pandoc-options-for-docx '((standalone . nil)))
+;; special settings for beamer-pdf and latex-pdf exporters
+(setq org-pandoc-options-for-beamer-pdf '((latex-engine . "xelatex")))
+(setq org-pandoc-options-for-latex-pdf '((latex-engine . "xelatex")))
+#+END_SRC
+
+** Document-Specific Options
+
+Following document-specific options can be specified. Value =nil=
+overrides preceding option setting. Value =t= means only specify
+option, but not its value. Options are delimited by space.
+=#+PANDOC_OPTIONS:= can be specified multiple times. If you want to
+specify the option value which include space character, quote /entire/
+option-value.
 
 - =PANDOC_OPTIONS:= :: Add command line options to the Pandoc process.
+- =PANDOC_METADATA:= :: Metadata for Pandoc.
+- =PANDOC_VARIABLES:= :: Variables for Pandoc.
 - =EPUB_RIGHTS:= :: copyright info to be embedded to EPUB metadata.
 - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
 - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
@@ -124,11 +127,50 @@ options can be used.
      bibliography can be specified in each line. Multiple
      bibliographies can be specified by repeatedly use this option.
 
+Following is an example:
+
+: #+PANDOC_OPTIONS: standalone:t latex-engine:xelatex
+: #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
+: #+BIBLIOGRAPHY: sample.bib
+: #+PANDOC_OPTIONS: csl:sample.csl
+: #+PANDOC_METADATA: page-progression-direction:ltr
+
+* Install
+
+You can install this tool with [[melpa.milkbox.net][MELPA]].  For example,
+
+#+BEGIN_SRC emacs-lisp
+(setq package-archives
+      '(("gnu" . "http://elpa.gnu.org/packages/")
+        ("melpa" . "http://melpa.milkbox.net/packages/")))
+#+END_SRC
+
+: M-x package-install ⏎
+: ox-pandoc ⏎
+
+* VS.
+
+** org-pandoc
+
+This file is inspired by [[https://github.com/robtillotson/org-pandoc][org-pandoc]], but entirely re-written. This
+tool prepares various commands for all pandoc software.
+
+* Note
+
+** Temporary Files
+
+This file creates and removes "XXXX.tmpZZZZ.org" and
+"XXXX.tmpZZZZ.css" (if necessary) temprary files in working directory.
+(ZZZZ is random string.)
+
 ** Obsolete In-File Options
 
-- =EPUB_METADATA:= :: obsolete. Use 'epub-metadata' in
+Following options are supported in previous version of =ox-pandoc=.
+They are no longer supported.
+
+- =EPUB_METADATA:= :: obsolete. Use =epub-metadata= in
      =PANDOC_OPTIONS:= instead.
-- =EPUB_STYLESHEET:= :: obsolete. Use 'epub-stylesheet' in
+- =EPUB_STYLESHEET:= :: obsolete. Use =epub-stylesheet= in
      =PANDOC_OPTIONS:= instead.
 
 ** Citation
@@ -137,8 +179,10 @@ Currently, Pandoc citation key is expressed as /@key/, rather than
 /{\cite key}/ . You may need some text converter if you want to use
 Pandoc citation styles in org document.
 
-* Note
+* License
 
-This file creates and removes "XXXX.tmpZZZZ.org" and
-"XXXX.tmpZZZZ.css" (if necessary) temprary files in working directory.
-(ZZZZ is random string.)
+  GPLv2.
+
+* Author
+
+- [[http://github.com/kawabata][kawabata]]
