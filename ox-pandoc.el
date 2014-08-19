@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.140817
+;; Version: 1.140819
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -1165,8 +1165,9 @@ Option table is created in this stage."
 
 (defun org-pandoc-run-to-buffer-or-file
     (input-file format subtreep &optional buffer-or-open)
-  (let ((output-buffer-or-file
-         (if (equal t buffer-or-open) (get-buffer-create "*Pandoc Output*")
+  ;; buffer-or-open  (t: buffer) (nil: file) (0: file and open).
+  (let ((output-file
+         (unless (equal t buffer-or-open)
            (org-export-output-file-name
             (concat "." (symbol-name
                          (or (assoc-default format org-pandoc-extensions)
@@ -1175,8 +1176,6 @@ Option table is created in this stage."
         (local-hook-symbol (intern (format "org-pandoc-after-processing-%s-hook"
                                            format)))
         css-temp-file meta-temp-file)
-    (when (bufferp output-buffer-or-file)
-      (with-current-buffer output-buffer-or-file (erase-buffer)))
     (when (or (equal org-pandoc-format 'epub)
               (equal org-pandoc-format 'epub3))
       (when org-pandoc-epub-css
@@ -1192,27 +1191,52 @@ Option table is created in this stage."
         (org-pandoc-put-options `((epub-metadata ,meta-temp-file)))
         (with-temp-file meta-temp-file
           (insert org-pandoc-epub-meta))))
-    (org-pandoc-run input-file output-buffer-or-file format
-                    org-pandoc-option-table)
-    (dolist (file (list input-file meta-temp-file css-temp-file))
-      (if (and file (file-exists-p file)) (delete-file file)))
-    (when (bufferp output-buffer-or-file)
-      (pop-to-buffer output-buffer-or-file)
-      (run-hooks local-hook-symbol)
-      (set-auto-mode))
-    (if (and (not (bufferp output-buffer-or-file))
-             (boundp local-hook-symbol)
-             (symbol-value local-hook-symbol))
-        (with-temp-file output-buffer-or-file
-          (insert-file-contents output-buffer-or-file)
-          (run-hooks local-hook-symbol)))
-    (if (equal 0 buffer-or-open)
-        (org-open-file output-buffer-or-file))))
+    (let ((process
+           (org-pandoc-run input-file output-file format
+                           'org-pandoc-sentinel org-pandoc-option-table)))
+      (process-put process 'files (list input-file meta-temp-file css-temp-file))
+      (process-put process 'output-file output-file)
+      (process-put process 'local-hook-symbol local-hook-symbol)
+      (process-put process 'buffer-or-open buffer-or-open))))
 
-(defun org-pandoc-run (input-file buffer-or-file format &optional options)
-  "Run pandoc command with INPUT-FILE (org), BUFFER-OR-FILE, FORMAT and OPTIONS.
+(defun org-pandoc-sentinel (process message)
+  "PROCESS sentinel with MESSAGE."
+  (case (process-status process)
+    (run)
+    (signal
+     ;; Warning.  Temporary files not removed (for now.)
+     (message "Signal Received. %s" message))
+    (exit
+     (dolist (file (process-get process 'files))
+       (if (and file (file-exists-p file)) (delete-file file)))
+     (let ((exit-status (process-exit-status process))
+           (buffer (process-buffer process))
+           (output-file (process-get process 'output-file))
+           (local-hook-symbol (process-get process 'local-hook-symbol))
+           (buffer-or-open (process-get process 'buffer-or-open)))
+       (if (/= exit-status 0)
+           (message "Error occured. \n%s"
+                    (with-current-buffer buffer (buffer-string)))
+         (if output-file
+             (progn
+               (kill-buffer buffer)
+               (message "Exported to %s." output-file)
+               (if (and (boundp local-hook-symbol)
+                        (symbol-value local-hook-symbol))
+                   (with-temp-file output-file
+                     (insert-file-contents output-file)
+                     (run-hooks local-hook-symbol)))
+               (if (equal 0 buffer-or-open)
+                   (org-open-file output-file)))
+           ;; output to buffer
+           (pop-to-buffer buffer)
+           (run-hooks local-hook-symbol)
+           (set-auto-mode)))))))
+
+(defun org-pandoc-run (input-file output-file format sentinel &optional options)
+  "Run pandoc command with INPUT-FILE (org), OUTPUT-FILE, FORMAT and OPTIONS.
 If BUFFER-OR-FILE is buffer, then output to specified buffer.
-OPTIONS is a hashtable."
+OPTIONS is a hashtable.  It runs asynchronously."
   (let* ((output-format
           (symbol-name
            (or (assoc-default format org-pandoc-translate-output-format)
@@ -1222,8 +1246,8 @@ OPTIONS is a hashtable."
             "-t" ,(if (string-match output-format "^markdown")
                       (concat output-format org-pandoc-markdown-extension)
                     output-format)
-            ,@(unless (bufferp buffer-or-file)
-                (list "-o" (expand-file-name buffer-or-file)))
+            ,@(and output-file
+                   (list "-o" (expand-file-name output-file)))
             ,@(-mapcat (lambda (key)
                          (-when-let (vals (gethash key options))
                            (if (equal vals t) (setq vals (list t)))
@@ -1233,17 +1257,12 @@ OPTIONS is a hashtable."
                        (ht-keys options))
             ,(expand-file-name input-file))))
     (message "Running pandoc with args: %s" args)
-    (let ((return
-           (apply 'call-process
-                  `(,org-pandoc-command nil ,(when (bufferp buffer-or-file)
-                                               buffer-or-file)
-                                        nil ,@args))))
-      (if (/= 0 return) (message "Error occured. %s"
-                                 (when (bufferp buffer-or-file)
-                                   (with-current-buffer buffer-or-file
-                                     (buffer-string))))
-        (unless (bufferp buffer-or-file)
-          (message "Exported to %s." buffer-or-file))))))
+    (let ((process
+           (apply 'start-process
+                  `("pandoc" ,(generate-new-buffer "*Pandoc*")
+                    ,org-pandoc-command ,@args))))
+      (set-process-sentinel process sentinel)
+      process)))
 
 (provide 'ox-pandoc)
 
