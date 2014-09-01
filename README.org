@@ -1,4 +1,4 @@
-* ox-pandoc Overview
+* ox-pandoc
 
 This is another exporter that translates Org-mode file to various
 other formats via Pandoc.
@@ -50,7 +50,13 @@ Following table shows the supported fromats.
 
 * Requirement
 
-You need Emacs 24, Pandoc 1.12.4 or later.
+You need Emacs 24.2, org-mode 8.2, and Pandoc 1.13 (or later
+versions). Pandoc-Citeproc 0.3 (or later) may also be needed if you
+use bibliography features.
+
+Note that Org-mode equipped with Emacs 24.3 is version 7.9 and can not
+be used with this tool. It is recommended to install Pandoc via [[http://www.haskell.org/cabal/][Cabal]],
+as other package managers often install old versions of Pandoc.
 
 * Usage
 
