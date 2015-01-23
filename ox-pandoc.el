@@ -6,16 +6,17 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.140819
+;; Version: 1.150122
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
 
 ;;; Commentary:
 
-;; This is another exporter that translates Org-mode file to various
-;; other formats via Pandoc. For details, please refer
-;; https://github.com/kawabata/ox-pandoc.
+;; This is another exporter for org-mode that translates Org-mode file
+;; to various other formats via Pandoc. You need org-mode version 8.2
+;; or later, and Pandoc 1.13 or later, to use this package. For
+;; details, please refer https://github.com/kawabata/ox-pandoc.
 
 ;;; Code:
 
@@ -70,7 +71,7 @@
            (alist :key-type (choice ,@(--map `(const ,it) org-pandoc-valid-options))
                   :value-type (choice (const t) (const nil) string))))
 
-(defcustom org-pandoc-options '((standalone . t) (mathjax . t))
+(defcustom org-pandoc-options '((standalone . t) (mathjax . t) (parse-raw . t))
   "Pandoc options."
   :group 'org-pandoc
   :type org-pandoc-option-type)
@@ -227,7 +228,7 @@
 (defcustom org-pandoc-options-for-asciidoc nil
   "Pandoc options for asciidoc."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-asciidoc-hook nil
   "Hook called after processing asciidoc."
@@ -252,7 +253,7 @@
 (defcustom org-pandoc-options-for-beamer nil
   "Pandoc options for beamer."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-beamer-hook nil
   "Hook called after processing beamer."
@@ -277,7 +278,7 @@
 (defcustom org-pandoc-options-for-beamer-pdf nil
   "Pandoc options for beamer-pdf."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 ;;;###autoload
 (defun org-pandoc-export-to-beamer-pdf (&optional a s v b e)
@@ -292,7 +293,7 @@
 (defcustom org-pandoc-options-for-context nil
   "Pandoc options for context."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-context-hook nil
   "Hook called after processing context."
@@ -317,7 +318,7 @@
 (defcustom org-pandoc-options-for-docbook nil
   "Pandoc options for docbook."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-docbook-hook nil
   "Hook called after processing docbook."
@@ -342,7 +343,7 @@
 (defcustom org-pandoc-options-for-docx nil
   "Pandoc options for docx."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 ;;;###autoload
 (defun org-pandoc-export-to-docx (&optional a s v b e)
@@ -357,7 +358,7 @@
 (defcustom org-pandoc-options-for-dzslides nil
   "Pandoc options for dzslides."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-dzslides-hook nil
   "Hook called after processing dzslides."
@@ -382,7 +383,7 @@
 (defcustom org-pandoc-options-for-epub nil
   "Pandoc options for epub."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 ;;;###autoload
 (defun org-pandoc-export-to-epub (&optional a s v b e)
@@ -397,7 +398,7 @@
 (defcustom org-pandoc-options-for-epub3 nil
   "Pandoc options for epub3."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 ;;;###autoload
 (defun org-pandoc-export-to-epub3 (&optional a s v b e)
@@ -412,7 +413,7 @@
 (defcustom org-pandoc-options-for-fb2 nil
   "Pandoc options for fb2."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-fb2-hook nil
   "Hook called after processing fb2."
@@ -437,7 +438,7 @@
 (defcustom org-pandoc-options-for-html nil
   "Pandoc options for html."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-html-hook nil
   "Hook called after processing html."
@@ -462,7 +463,7 @@
 (defcustom org-pandoc-options-for-html5 nil
   "Pandoc options for html5."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-html5-hook nil
   "Hook called after processing html5."
@@ -487,7 +488,7 @@
 (defcustom org-pandoc-options-for-icml nil
   "Pandoc options for icml."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-icml-hook nil
   "Hook called after processing icml."
@@ -512,7 +513,7 @@
 (defcustom org-pandoc-options-for-json nil
   "Pandoc options for json."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-json-hook nil
   "Hook called after processing json."
@@ -537,7 +538,7 @@
 (defcustom org-pandoc-options-for-latex nil
   "Pandoc options for latex."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-latex-hook nil
   "Hook called after processing latex."
@@ -562,7 +563,7 @@
 (defcustom org-pandoc-options-for-latex-pdf nil
   "Pandoc options for latex-pdf."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 ;;;###autoload
 (defun org-pandoc-export-to-latex-pdf (&optional a s v b e)
@@ -577,7 +578,7 @@
 (defcustom org-pandoc-options-for-man nil
   "Pandoc options for man."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-man-hook nil
   "Hook called after processing man."
@@ -602,7 +603,7 @@
 (defcustom org-pandoc-options-for-markdown nil
   "Pandoc options for markdown."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-markdown-hook nil
   "Hook called after processing markdown."
@@ -627,7 +628,7 @@
 (defcustom org-pandoc-options-for-markdown_github nil
   "Pandoc options for markdown_github."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-markdown_github-hook nil
   "Hook called after processing markdown_github."
@@ -652,7 +653,7 @@
 (defcustom org-pandoc-options-for-markdown_mmd nil
   "Pandoc options for markdown_mmd."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-markdown_mmd-hook nil
   "Hook called after processing markdown_mmd."
@@ -677,7 +678,7 @@
 (defcustom org-pandoc-options-for-markdown_phpextra nil
   "Pandoc options for markdown_phpextra."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-markdown_phpextra-hook nil
   "Hook called after processing markdown_phpextra."
@@ -702,7 +703,7 @@
 (defcustom org-pandoc-options-for-markdown_strict nil
   "Pandoc options for markdown_strict."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-markdown_strict-hook nil
   "Hook called after processing markdown_strict."
@@ -727,7 +728,7 @@
 (defcustom org-pandoc-options-for-mediawiki nil
   "Pandoc options for mediawiki."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-mediawiki-hook nil
   "Hook called after processing mediawiki."
@@ -752,7 +753,7 @@
 (defcustom org-pandoc-options-for-native nil
   "Pandoc options for native."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-native-hook nil
   "Hook called after processing native."
@@ -777,7 +778,7 @@
 (defcustom org-pandoc-options-for-odt nil
   "Pandoc options for odt."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 ;;;###autoload
 (defun org-pandoc-export-to-odt (&optional a s v b e)
@@ -792,7 +793,7 @@
 (defcustom org-pandoc-options-for-opendocument nil
   "Pandoc options for opendocument."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 ;;;###autoload
 (defun org-pandoc-export-to-opendocument (&optional a s v b e)
@@ -807,7 +808,7 @@
 (defcustom org-pandoc-options-for-opml nil
   "Pandoc options for opml."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-opml-hook nil
   "Hook called after processing opml."
@@ -832,7 +833,7 @@
 (defcustom org-pandoc-options-for-org nil
   "Pandoc options for org."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-org-hook nil
   "Hook called after processing org."
@@ -857,7 +858,7 @@
 (defcustom org-pandoc-options-for-plain nil
   "Pandoc options for plain."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-plain-hook nil
   "Hook called after processing plain."
@@ -882,7 +883,7 @@
 (defcustom org-pandoc-options-for-revealjs nil
   "Pandoc options for revealjs."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-revealjs-hook nil
   "Hook called after processing revealjs."
@@ -907,7 +908,7 @@
 (defcustom org-pandoc-options-for-rst nil
   "Pandoc options for rst."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-rst-hook nil
   "Hook called after processing rst."
@@ -932,7 +933,7 @@
 (defcustom org-pandoc-options-for-rtf nil
   "Pandoc options for rtf."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-rtf-hook nil
   "Hook called after processing rtf."
@@ -957,7 +958,7 @@
 (defcustom org-pandoc-options-for-s5 nil
   "Pandoc options for s5."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-s5-hook nil
   "Hook called after processing s5."
@@ -982,7 +983,7 @@
 (defcustom org-pandoc-options-for-slideous nil
   "Pandoc options for slideous."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-slideous-hook nil
   "Hook called after processing slideous."
@@ -1007,7 +1008,7 @@
 (defcustom org-pandoc-options-for-slidy nil
   "Pandoc options for slidy."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-slidy-hook nil
   "Hook called after processing slidy."
@@ -1032,7 +1033,7 @@
 (defcustom org-pandoc-options-for-texinfo nil
   "Pandoc options for texinfo."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-texinfo-hook nil
   "Hook called after processing texinfo."
@@ -1057,7 +1058,7 @@
 (defcustom org-pandoc-options-for-textile nil
   "Pandoc options for textile."
   :group 'org-pandoc
-  :type 'org-pandoc-option-type)
+  :type org-pandoc-option-type)
 
 (defcustom org-pandoc-after-processing-textile-hook nil
   "Hook called after processing textile."
@@ -1263,6 +1264,24 @@ OPTIONS is a hashtable.  It runs asynchronously."
                     ,org-pandoc-command ,@args))))
       (set-process-sentinel process sentinel)
       process)))
+
+(defun org-pandoc-startup-check ()
+  (interactive)
+  (if (not (executable-find org-pandoc-command))
+      (message "Warning. Pandoc command is not installed.")
+    (let ((version (with-temp-buffer
+                    (call-process org-pandoc-command nil t nil "-v")
+                    (buffer-string))))
+      (if (not (string-match "^pandoc \\([0-9]+\\)\\.\\([0-9]+\\)" version))
+          (message "Warning.  Pandoc version number can not be retrieved.")
+        (let ((major (string-to-number (match-string 1 version)))
+              (minor (string-to-number (match-string 2 version))))
+          (unless (or (< 1 major)
+                      (and (= 1 major)
+                           (< 12 minor)))
+            (message "Warning.  This Pandoc may not support org-mode reader.")))))))
+
+(org-pandoc-startup-check)
 
 (provide 'ox-pandoc)
 
