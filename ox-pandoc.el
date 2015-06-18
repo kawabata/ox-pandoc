@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.150122
+;; Version: 1.150616
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -37,13 +37,13 @@
     epub-stylesheet filter gladtex highlight-style html-q-tags html5
     id-prefix ignore-args include-after-body include-before-body
     include-in-header incremental indented-code-classes jsmath
-    latex-engine latexmathml listings mathjax mathml metadata mimetex
-    natbib no-highlight no-tex-ligatures no-wrap normalize number-offset
-    number-sections offline old-dashes output parse-raw preserve-tabs
-    read reference-docx reference-links reference-odt section-divs
-    self-contained slide-level smart standalone tab-stop
-    table-of-contents template title-prefix to toc-depth variable
-    version webtex))
+    latex-engine latex-engine-opt latexmathml listings mathjax mathml
+    metadata mimetex natbib no-highlight no-tex-ligatures no-wrap
+    normalize number-offset number-sections offline old-dashes output
+    parse-raw preserve-tabs read reference-docx reference-links
+    reference-odt section-divs self-contained slide-level smart
+    standalone tab-stop table-of-contents template title-prefix to
+    toc-depth variable verbose version webtex))
 
 (defconst org-pandoc-colon-separated-options
   '(include-in-header include-before-body include-after-body css
@@ -56,12 +56,13 @@
     citation-abbreviations data-dir))
 
 (defconst org-pandoc-extensions
-  '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf) (context . tex)
+  '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf)
+    (commonmark . md) (context . tex)
     (dzslides . html) (epub3 . epub) (html5 . html) (latex . tex)
     (latex-pdf . pdf) (markdown . md) (markdown_github . md)
     (markdown_mmd . md) (markdown_strict . md) (native . hs)
     (opendocument . xml) (plain . txt) (revealjs . html) (s5 . html)
-    (slideous . html) (slidy . html)))
+    (slideous . html) (slidy . html) (texinfo . texi)))
 
 (defconst org-pandoc-translate-output-format
   '((beamer-pdf . beamer) (latex-pdf . latex)))
@@ -91,6 +92,7 @@
     ;;(?! "as beamer." org-pandoc-export-as-beamer)
     (?b "to beamer-pdf and open." org-pandoc-export-to-beamer-pdf-and-open)
     (?B "to beamer-pdf." org-pandoc-export-to-beamer-pdf)
+    ;;(?q "to commonmark." org-pandoc-export-to-commonmark)
     ;;(?c "to context." org-pandoc-export-to-context)
     (?c "to context and open." org-pandoc-export-to-context-and-open)
     (?C "as context." org-pandoc-export-as-context)
@@ -289,6 +291,31 @@
 (defun org-pandoc-export-to-beamer-pdf-and-open (&optional a s v b e)
   "Export to beamer-pdf and open."
   (interactive) (org-pandoc-export 'beamer-pdf a s v b e 0))
+
+(defcustom org-pandoc-options-for-commonmark nil
+  "Pandoc options for commonmark."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-commonmark-hook nil
+  "Hook called after processing commonmark."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-commonmark (&optional a s v b e)
+  "Export to commonmark."
+  (interactive) (org-pandoc-export 'commonmark a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-commonmark-and-open (&optional a s v b e)
+  "Export to commonmark and open."
+  (interactive) (org-pandoc-export 'commonmark a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-commonmark (&optional a s v b e)
+  "Export as context."
+  (interactive) (org-pandoc-export 'commonmark a s v b e t))
 
 (defcustom org-pandoc-options-for-context nil
   "Pandoc options for context."
@@ -1206,7 +1233,7 @@ Option table is created in this stage."
     (run)
     (signal
      ;; Warning.  Temporary files not removed (for now.)
-     (message "Signal Received. %s" message))
+     (display-warning 'ox-pandoc (format "Signal Received. %s" message)))
     (exit
      (dolist (file (process-get process 'files))
        (if (and file (file-exists-p file)) (delete-file file)))
@@ -1268,18 +1295,18 @@ OPTIONS is a hashtable.  It runs asynchronously."
 (defun org-pandoc-startup-check ()
   (interactive)
   (if (not (executable-find org-pandoc-command))
-      (message "Warning. Pandoc command is not installed.")
+      (display-warning 'ox-pandoc "Pandoc command is not installed.")
     (let ((version (with-temp-buffer
                     (call-process org-pandoc-command nil t nil "-v")
                     (buffer-string))))
       (if (not (string-match "^pandoc \\([0-9]+\\)\\.\\([0-9]+\\)" version))
-          (message "Warning.  Pandoc version number can not be retrieved.")
+          (display-warning 'ox-pandoc "Pandoc version number can not be retrieved.")
         (let ((major (string-to-number (match-string 1 version)))
               (minor (string-to-number (match-string 2 version))))
           (unless (or (< 1 major)
                       (and (= 1 major)
                            (< 12 minor)))
-            (message "Warning.  This Pandoc may not support org-mode reader.")))))))
+            (display-warning 'ox-pandoc "This Pandoc may not support org-mode reader.")))))))
 
 (org-pandoc-startup-check)
 

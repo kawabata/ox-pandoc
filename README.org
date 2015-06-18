@@ -13,6 +13,7 @@ Following table shows the supported fromats.
 | asciidoc          | txt       | t      | t    |
 | beamer            | tex       | t      | t    |
 | beamer-pdf        | pdf       | nil    | t    |
+| commonmark        | md        | t      | t    |
 | context           | tex       | t      | t    |
 | docbook           | xml       | t      | t    |
 | docx              |           | nil    | t    |
@@ -45,10 +46,10 @@ Following table shows the supported fromats.
 | s5                | html      | t      | t    |
 | slideous          | html      | t      | t    |
 | slidy             | html      | t      | t    |
-| texinfo           |           | t      | t    |
+| texinfo           | texi      | t      | t    |
 | textile           |           | t      | t    |
 
-* Requirement
+* Requirements
 
 You need Emacs 24.2, org-mode 8.2, and Pandoc 1.13 (or later
 versions). Pandoc-Citeproc 0.3 (or later) may also be needed if you
@@ -56,18 +57,18 @@ use bibliography features.
 
 Note that Org-mode equipped with Emacs 24.3 is version 7.9 and can not
 be used with this tool. It is recommended to install Pandoc via [[http://www.haskell.org/cabal/][Cabal]],
-as other package managers often install old versions of Pandoc.
+as other package managers sometimes install old versions of Pandoc.
 
 * Usage
 
 ** Running the Commands
 
-For example, to convert org-mode file to 'html5' format, you can run
+For example, to convert org-mode file to 'html5' format, you may run
 the following commands.
 
-- =org-pandoc-export-as-html5= :: Exports the HTML text to a buffer.
-- =org-pandoc-export-to-html5= :: Exports the HTML text to a file.
-- =org-pandoc-export-to-html5-and-open= :: Export and open HTML file.
+- =org-pandoc-export-as-html5= :: Exports to the HTML5 text as a buffer.
+- =org-pandoc-export-to-html5= :: Exports to the HTML5 text file.
+- =org-pandoc-export-to-html5-and-open= :: Exports and open HTML5 file.
 
 Similar commands are prepared for various formats.
 
@@ -92,8 +93,8 @@ Multiple values can be specified to options defined in
 =org-pandoc-colon-separated-options=. They should be defined in
 colon-separated list.
 
-Options defined in =org-pandoc-file-options= will be expanded to full
-path if they begin with =~= (tilde) character.
+Values of options defined in =org-pandoc-file-options= will be
+expanded to full path if they begin with =~= (tilde) character.
 
 For example:
 
@@ -141,7 +142,7 @@ Following is an example:
 : #+PANDOC_OPTIONS: csl:sample.csl
 : #+PANDOC_METADATA: page-progression-direction:ltr
 
-* Install
+* Installation
 
 You can install this tool with [[melpa.milkbox.net][MELPA]].  For example,
 
