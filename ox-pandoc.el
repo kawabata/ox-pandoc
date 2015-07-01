@@ -1299,7 +1299,7 @@ OPTIONS is a hashtable.  It runs asynchronously."
     (let ((version (with-temp-buffer
                     (call-process org-pandoc-command nil t nil "-v")
                     (buffer-string))))
-      (if (not (string-match "^pandoc \\([0-9]+\\)\\.\\([0-9]+\\)" version))
+      (if (not (string-match "^pandoc.* \\([0-9]+\\)\\.\\([0-9]+\\)" version))
           (display-warning 'ox-pandoc "Pandoc version number can not be retrieved.")
         (let ((major (string-to-number (match-string 1 version)))
               (minor (string-to-number (match-string 2 version))))
