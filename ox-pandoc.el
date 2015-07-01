@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.150616
+;; Version: 1.150630
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -1168,7 +1168,9 @@ Option table is created in this stage."
                (epub-chapter-level . :epub-chapter-level)
                (epub-cover-image   . :epub-cover-image)
                (bibliography .       :bibliography))))
-  contents)
+  (if (functionp 'org-org-template)
+      (org-org-template contents info)
+    contents))
 
 (defun org-pandoc-put-options (options)
   "Put alist OPTIONS to `org-pandoc-option-table'."

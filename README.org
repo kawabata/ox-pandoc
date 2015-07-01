@@ -115,7 +115,7 @@ overrides preceding option setting. Value =t= means only specify
 option, but not its value. Options are delimited by space.
 =#+PANDOC_OPTIONS:= can be specified multiple times. If you want to
 specify the option value which include space character, quote /entire/
-option-value.
+option-value pair.
 
 - =PANDOC_OPTIONS:= :: Add command line options to the Pandoc process.
 - =PANDOC_METADATA:= :: Metadata for Pandoc.
