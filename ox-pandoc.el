@@ -1,12 +1,12 @@
 ;;; ox-pandoc.el --- org exporter for pandoc.        -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014 KAWABATA, Taichi
+;; Copyright (C) 2014-2015 KAWABATA, Taichi
 
 ;; Filename: ox-pandoc.el
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.150630
+;; Version: 1.150706
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -1168,9 +1168,15 @@ Option table is created in this stage."
                (epub-chapter-level . :epub-chapter-level)
                (epub-cover-image   . :epub-cover-image)
                (bibliography .       :bibliography))))
-  (if (functionp 'org-org-template)
-      (org-org-template contents info)
-    contents))
+  ;; 'ox-pandoc' is derived from 'ox-org'. If 'ox-org' defines its own
+  ;; template, then this template function (org-pandoc-template) calls
+  ;; original ox-org template at the end.
+  (let ((org-template
+         (cdr (assoc 'template
+                     (org-export-get-all-transcoders 'org)))))
+    (if org-template
+        (funcall org-template contents info)
+    contents)))
 
 (defun org-pandoc-put-options (options)
   "Put alist OPTIONS to `org-pandoc-option-table'."
@@ -1301,7 +1307,7 @@ OPTIONS is a hashtable.  It runs asynchronously."
     (let ((version (with-temp-buffer
                     (call-process org-pandoc-command nil t nil "-v")
                     (buffer-string))))
-      (if (not (string-match "^pandoc.* \\([0-9]+\\)\\.\\([0-9]+\\)" version))
+      (if (not (string-match "^pandoc.*? \\([0-9]+\\)\\.\\([0-9]+\\)" version))
           (display-warning 'ox-pandoc "Pandoc version number can not be retrieved.")
         (let ((major (string-to-number (match-string 1 version)))
               (minor (string-to-number (match-string 2 version))))
