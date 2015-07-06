@@ -47,13 +47,13 @@
 
 (defconst org-pandoc-colon-separated-options
   '(include-in-header include-before-body include-after-body css
-    epub-embed-font bibliography))
+    epub-embed-font bibliography filter))
 
 (defconst org-pandoc-file-options
   '(template include-in-header include-before-body include-after-body
     reference-odt reference-docx epub-stylesheet epub-cover-image
     epub-metadata epub-embed-font bibliography csl
-    citation-abbreviations data-dir))
+    citation-abbreviations data-dir filter))
 
 (defconst org-pandoc-extensions
   '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf)
