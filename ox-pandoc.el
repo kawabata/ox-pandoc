@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.150706
+;; Version: 1.150707
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -53,7 +53,7 @@
   '(template include-in-header include-before-body include-after-body
     reference-odt reference-docx epub-stylesheet epub-cover-image
     epub-metadata epub-embed-font bibliography csl
-    citation-abbreviations data-dir filter))
+    citation-abbreviations data-dir))
 
 (defconst org-pandoc-extensions
   '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf)
