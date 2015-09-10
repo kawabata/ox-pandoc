@@ -142,6 +142,11 @@ Following is an example:
 : #+PANDOC_OPTIONS: csl:sample.csl
 : #+PANDOC_METADATA: page-progression-direction:ltr
 
+** Customizing Shortcut
+As pandoc supports many number of formats, initial
+=org-export-dispatch= shortcut menu does not show full of its
+supported formats. You can customize =org-pandoc-menu-entry= variable
+(and probably restart Emacs) to change its default menu entries.
 * Installation
 
 You can install this tool with [[melpa.milkbox.net][MELPA]].  For example,
