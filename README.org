@@ -122,6 +122,7 @@ option-value pair.
 - =PANDOC_VARIABLES:= :: Variables for Pandoc.
 - =EPUB_RIGHTS:= :: copyright info to be embedded to EPUB metadata.
 - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
+- =EPUB_STYLESHEET:= :: same as 'epub-stylesheet' pandoc-option.
 - =EPUB_COVER:= :: same as 'epub-cover-image' pandoc-option.
 - =EPUB_FONT:= :: same as 'epub-embed-font' pandoc-option. Only one
                   font can be specified in each line. Multiple fonts
@@ -142,11 +143,21 @@ Following is an example:
 : #+PANDOC_OPTIONS: csl:sample.csl
 : #+PANDOC_METADATA: page-progression-direction:ltr
 
-** Customizing Shortcut
+** Customizing Shortcuts
 As pandoc supports many number of formats, initial
 =org-export-dispatch= shortcut menu does not show full of its
 supported formats. You can customize =org-pandoc-menu-entry= variable
 (and probably restart Emacs) to change its default menu entries.
+
+If you want delayed loading of `ox-pandoc' when
+=org-pandoc-menu-entry= is customized, please consider the following
+settings in your init file.
+
+#+BEGIN_SRC emacs-lisp
+(with-eval-after-load 'ox
+  (require 'ox-pandoc))
+#+END_SRC
+
 * Installation
 
 You can install this tool with [[melpa.milkbox.net][MELPA]].  For example,
