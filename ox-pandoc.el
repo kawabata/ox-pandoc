@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.151223
+;; Version: 1.160420
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -1220,7 +1220,7 @@ Option table is created in this stage."
    (--mapcat (-when-let (val (plist-get info (cdr it)))
                (list (cons (car it) (split-string-and-unquote val))))
              '((metadata . :pandoc-metadata)
-               (variable . :pandoc-variable))))
+               (variable . :pandoc-variables))))
   (org-pandoc-put-options
    (--mapcat (-when-let (val (plist-get info (cdr it)))
                (list (cons (car it) (split-string val "\n"))))
