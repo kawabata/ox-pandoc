@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.160420
+;; Version: 1.160629
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -14,8 +14,8 @@
 ;;; Commentary:
 
 ;; This is another exporter for org-mode that translates Org-mode file
-;; to various other formats via Pandoc. You need org-mode version 8.2
-;; or later, and Pandoc 1.13 or later, to use this package. For
+;; to various other formats via Pandoc.  You need org-mode version 8.2
+;; or later, and Pandoc 1.13 or later, to use this package.  For
 ;; details, please refer https://github.com/kawabata/ox-pandoc.
 
 ;;; Code:
@@ -57,7 +57,8 @@
 
 (defconst org-pandoc-extensions
   '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf)
-    (commonmark . md) (context . tex) (dokuwiki . doku)
+    (commonmark . md) (context . tex)
+    (docbook . dbk) (docbook5 . dbk) (dokuwiki . doku)
     (dzslides . html) (epub3 . epub)
     (haddock . hs) (html5 . html) (latex . tex)
     (latex-pdf . pdf) (markdown . md) (markdown_github . md)
@@ -100,8 +101,11 @@
     (?c "to context and open." org-pandoc-export-to-context-and-open)
     (?C "as context." org-pandoc-export-as-context)
     ;;(?d "to docbook." org-pandoc-export-to-docbook)
-    (?d "to docbook and open." org-pandoc-export-to-docbook-and-open)
-    (?D "as docbook." org-pandoc-export-as-docbook)
+    ;;(?d "to docbook and open." org-pandoc-export-to-docbook-and-open)
+    ;;(?D "as docbook." org-pandoc-export-as-docbook)
+    ;;(?d "to docbook." org-pandoc-export-to-docbook5)
+    (?d "to docbook and open." org-pandoc-export-to-docbook5-and-open)
+    (?D "as docbook." org-pandoc-export-as-docbook5)
     (?x "to docx and open." org-pandoc-export-to-docx-and-open)
     (?X "to docx." org-pandoc-export-to-docx)
     ;;(?u "to dokuwiki." org-pandoc-export-to-dokuwiki)
@@ -195,6 +199,9 @@
     ;;(?t "to texinfo." org-pandoc-export-to-texinfo)
     (?t "to texinfo and open." org-pandoc-export-to-texinfo-and-open)
     (?T "as texinfo." org-pandoc-export-as-texinfo)
+    ;;(?2 "to tei." org-pandoc-export-to-tei)
+    (?2 "to tei and open." org-pandoc-export-to-tei-and-open)
+    (?\" "as tei." org-pandoc-export-as-tei)
     ;;(?> "to textile." org-pandoc-export-to-textile)
     (?> "to textile and open." org-pandoc-export-to-textile-and-open)
     (?. "as textile." org-pandoc-export-as-textile)
@@ -376,6 +383,31 @@
 (defun org-pandoc-export-as-docbook (&optional a s v b e)
   "Export as docbook."
   (interactive) (org-pandoc-export 'docbook a s v b e t))
+
+(defcustom org-pandoc-options-for-docbook5 nil
+  "Pandoc options for docbook5."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-docbook5-hook nil
+  "Hook called after processing docbook5."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-docbook5 (&optional a s v b e)
+  "Export to docbook5."
+  (interactive) (org-pandoc-export 'docbook5 a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-docbook5-and-open (&optional a s v b e)
+  "Export to docbook5 and open."
+  (interactive) (org-pandoc-export 'docbook5 a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-docbook5 (&optional a s v b e)
+  "Export as docbook5."
+  (interactive) (org-pandoc-export 'docbook5 a s v b e t))
 
 (defcustom org-pandoc-options-for-docx nil
   "Pandoc options for docx."
@@ -1141,6 +1173,31 @@
 (defun org-pandoc-export-as-texinfo (&optional a s v b e)
   "Export as texinfo."
   (interactive) (org-pandoc-export 'texinfo a s v b e t))
+
+(defcustom org-pandoc-options-for-tei nil
+  "Pandoc options for tei."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-tei-hook nil
+  "Hook called after processing tei."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-tei (&optional a s v b e)
+  "Export to tei."
+  (interactive) (org-pandoc-export 'tei a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-tei-and-open (&optional a s v b e)
+  "Export to tei and open."
+  (interactive) (org-pandoc-export 'tei a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-tei (&optional a s v b e)
+  "Export as tei."
+  (interactive) (org-pandoc-export 'tei a s v b e t))
 
 (defcustom org-pandoc-options-for-textile nil
   "Pandoc options for textile."
