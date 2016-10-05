@@ -7,7 +7,7 @@
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
 ;; Version: 1.160629
-;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0"))
+;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0") (cl-lib "0.5"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
 
@@ -23,6 +23,7 @@
 (require 'ox-org)
 (require 'dash)
 (require 'ht)
+(require 'cl-lib)
 
 (defgroup org-pandoc nil
   "Options specific to Pandoc export back-end."
@@ -1355,7 +1356,7 @@ Option table is created in this stage."
 
 (defun org-pandoc-sentinel (process message)
   "PROCESS sentinel with MESSAGE."
-  (case (process-status process)
+  (cl-case (process-status process)
     (run)
     (signal
      ;; Warning.  Temporary files not removed (for now.)
