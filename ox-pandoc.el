@@ -211,7 +211,8 @@
   :type 'list)
 
 (org-export-define-derived-backend 'pandoc 'org
-  :translate-alist '((template . org-pandoc-template))
+  :translate-alist '((template . org-pandoc-template)
+                     (paragraph . org-pandoc-identity))
   ;; :export-block "PANDOC"
   :menu-entry
   `(?p "export via pandoc"
@@ -1295,6 +1296,14 @@ Option table is created in this stage."
     (if org-template
         (funcall org-template contents info)
     contents)))
+
+(defun org-pandoc-identity (blob contents info)
+  "Transcode BLOB element or object back into Org syntax.
+CONTENTS is its contents, as a string or nil. INFO is ignored.
+Like `org-org-identity', but also preserves #+ATTR_* tags in the
+output."
+  (ignore info)
+  (org-export-expand blob contents t))
 
 (defun org-pandoc-put-options (options)
   "Put alist OPTIONS to `org-pandoc-option-table'."
