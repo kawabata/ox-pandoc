@@ -211,7 +211,8 @@
   :type 'list)
 
 (org-export-define-derived-backend 'pandoc 'org
-  :translate-alist '((template . org-pandoc-template)
+  :translate-alist '((link      . org-pandoc-link)
+                     (template  . org-pandoc-template)
                      (paragraph . org-pandoc-identity))
   ;; :export-block "PANDOC"
   :menu-entry
@@ -1245,6 +1246,16 @@ t means output to buffer."
   (org-export-to-file 'pandoc (org-export-output-file-name
                                (concat (make-temp-name ".tmp") ".org") s)
     a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
+
+(defun org-pandoc-link (link contents info)
+  "Transcode LINK object using the registered formatter for the
+'pandoc backend. If none exists, transcode using the registered
+formatter for the 'org export backend. CONTENTS is the
+description of the link, as a string, or nil. INFO is a plist
+containing current export state."
+  (or (org-export-custom-protocol-maybe link contents 'pandoc)
+      (org-export-custom-protocol-maybe link contents 'org)
+      (org-element-link-interpreter link contents)))
 
 (defun org-pandoc-template (contents info)
   "Template processor for CONTENTS and INFO.
