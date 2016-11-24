@@ -211,7 +211,8 @@
   :type 'list)
 
 (org-export-define-derived-backend 'pandoc 'org
-  :translate-alist '((link      . org-pandoc-link)
+  :translate-alist '((latex-environment . org-pandoc-latex-environ)
+                     (link      . org-pandoc-link)
                      (template  . org-pandoc-template)
                      (paragraph . org-pandoc-identity))
   ;; :export-block "PANDOC"
@@ -1247,12 +1248,54 @@ t means output to buffer."
                                (concat (make-temp-name ".tmp") ".org") s)
     a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
 
-(defun org-pandoc-link (link contents info)
+(defun org-pandoc-latex-environ (blob contents _info)
+  "Transcode a latex environment for export with pandoc.
+Works around a bug in
+pandoc (https://github.com/jgm/pandoc/issues/1764, present in at
+least up-to and including pandoc 1.18) to surround an AMSMath
+latex environment in BLOB with plain TeX equation block
+delimiters, '$$ .. $$' in order for pandoc to properly recognise
+the maths environment as a latex equation.  Also adds surrounding
+line-breaks so that pandoc treats the math environment as its own
+paragraph.  This avoids having text before or after the math
+environment ending up on the same line as the equation.
+CONTENTS is its contents, as a string or nil.  INFO is ignored."
+  (let ((raw-value (org-export-expand blob contents t)))
+      ;; If we're exporting to a TeX-based format, there's no need for
+      ;; this hack
+      (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
+          raw-value
+        ;; Otherwise, add '$$' elements before and after the block to
+        ;; get pandoc to process it.
+        (let* ((post-blank (org-element-property :post-blank blob))
+               (case-fold-search t)
+               (preface
+                (replace-regexp-in-string
+                 (rx (group-n 1 "\\begin{"
+                              (or "align" "alignat" "eqnarray" "equation" "flalign" "gather" "multline")
+                              (zero-or-one "*" ) "}"))
+                 "\n$$\\1"
+                 raw-value))
+               (output
+                (replace-regexp-in-string
+                 (rx (group-n 1 "\\end{"
+                              (or "align" "alignat" "eqnarray" "equation" "flalign" "gather" "multline")
+                              (zero-or-one "*" ) "}"))
+                 "\\1$$"
+                 preface)))
+          ;; If we've added the '$$' delimiters, then also set the
+          ;; :post-blank property to add a blank line after this current
+          ;; latex equation environment
+          (unless (or (>= post-blank 1)
+                      (string-equal raw-value output))
+            (org-element-put-property blob :post-blank 1))
+          output))))
+
+(defun org-pandoc-link (link contents _info)
   "Transcode LINK object using the registered formatter for the
-'pandoc backend. If none exists, transcode using the registered
-formatter for the 'org export backend. CONTENTS is the
-description of the link, as a string, or nil. INFO is a plist
-containing current export state."
+'pandoc backend.  If none exists, transcode using the registered
+formatter for the 'org export backend.  CONTENTS is the
+description of the link, as a string, or nil.  INFO is ignored."
   (or (org-export-custom-protocol-maybe link contents 'pandoc)
       (org-export-custom-protocol-maybe link contents 'org)
       (org-element-link-interpreter link contents)))
@@ -1308,12 +1351,11 @@ Option table is created in this stage."
         (funcall org-template contents info)
     contents)))
 
-(defun org-pandoc-identity (blob contents info)
+(defun org-pandoc-identity (blob contents _info)
   "Transcode BLOB element or object back into Org syntax.
-CONTENTS is its contents, as a string or nil. INFO is ignored.
+CONTENTS is its contents, as a string or nil.  INFO is ignored.
 Like `org-org-identity', but also preserves #+ATTR_* tags in the
 output."
-  (ignore info)
   (org-export-expand blob contents t))
 
 (defun org-pandoc-put-options (options)
