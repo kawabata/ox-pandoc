@@ -1288,7 +1288,21 @@ table/figure/etc. numbers."
           (setf (cl-caaar caption) (concat (format title-fmt reference)
                                            " " name-target (cl-caaar caption))))))))
 
-(defun org-pandoc-latex-environ (blob contents _info)
+(defun org-pandoc--numbered-equation-p (element _info)
+  "Non-nil when ELEMENT is a numbered latex equation environment.
+INFO is a plist used as a communication channel.  This function
+is meant to be used as a predicate for `org-export-get-ordinal'."
+  (let ((raw-value (org-element-property :value element))
+        (case-fold-search t))
+    (string-match-p
+     (rx "\\begin{"
+         (group-n 1 (or "align" "alignat" "eqnarray" "equation"
+                        "flalign" "gather" "multline"))
+         "}" (*? anything)
+         "\\end{" (backref 1) "}" )
+     raw-value)))
+
+(defun org-pandoc-latex-environ (latex-env contents info)
   "Transcode a latex environment for export with pandoc.
 Works around a bug in
 pandoc (https://github.com/jgm/pandoc/issues/1764, present in at
@@ -1299,37 +1313,63 @@ the maths environment as a latex equation.  Also adds surrounding
 line-breaks so that pandoc treats the math environment as its own
 paragraph.  This avoids having text before or after the math
 environment ending up on the same line as the equation.
-CONTENTS is its contents, as a string or nil.  INFO is ignored."
-  (let ((raw-value (org-export-expand blob contents t)))
-      ;; If we're exporting to a TeX-based format, there's no need for
-      ;; this hack
-      (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
-          raw-value
-        ;; Otherwise, add '$$' elements before and after the block to
-        ;; get pandoc to process it.
-        (let* ((post-blank (org-element-property :post-blank blob))
-               (case-fold-search t)
-               (preface
-                (replace-regexp-in-string
-                 (rx (group-n 1 "\\begin{"
-                              (or "align" "alignat" "eqnarray" "equation" "flalign" "gather" "multline")
-                              (zero-or-one "*" ) "}"))
-                 "\n$$\\1"
-                 raw-value))
-               (output
-                (replace-regexp-in-string
-                 (rx (group-n 1 "\\end{"
-                              (or "align" "alignat" "eqnarray" "equation" "flalign" "gather" "multline")
-                              (zero-or-one "*" ) "}"))
-                 "\\1$$"
-                 preface)))
-          ;; If we've added the '$$' delimiters, then also set the
-          ;; :post-blank property to add a blank line after this current
-          ;; latex equation environment
-          (unless (or (>= post-blank 1)
-                      (string-equal raw-value output))
-            (org-element-put-property blob :post-blank 1))
-          output))))
+Additionally, adds a fake equation number if the environment
+should have one.  CONTENTS is its contents, as a string or nil.
+INFO is a plist holding contextual information."
+  (let ((raw-value (org-export-expand latex-env contents t))
+        (case-fold-search t)
+        (replacement-str "\n$$\\1$$")
+        (output nil))
+    ;; If we're exporting to a TeX-based format, there's no need for
+    ;; this hack
+    (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
+        raw-value
+      ;; Otherwise, add '$$' elements before and after the block to get
+      ;; pandoc to process it.
+      ;;
+      ;; For numbered equation environments, we need to fake the
+      ;; equation numbering before sending it to pandoc. Fake equation
+      ;; numbers are typeset as "(%d)", offset from the main equation by
+      ;; a "\qquad" space, ala pandoc-crossref
+      ;; (https://github.com/lierdakil/pandoc-crossref)
+      (when (org-pandoc--numbered-equation-p latex-env info)
+        (let ((reference (org-export-get-ordinal
+                          latex-env info nil
+                          #'org-pandoc--numbered-equation-p)))
+          (setq replacement-str
+                (format "\n$$\\1 \\\\qquad (%d)$$" reference))))
+
+      ;; For equations with a named links target (`#+NAME:' block), add
+      ;; the target to the top of the equation
+      (let ((name (org-element-property :name latex-env)))
+        (when name
+          (setq replacement-str
+                (concat "\n<<" name ">>" replacement-str))))
+
+      ;; Add '$$' elements before and after the block to get pandoc to
+      ;; process it.
+      (setq output
+            (replace-regexp-in-string
+             (rx (group-n 1 "\\begin{"
+                          (group-n 2 (or "align" "alignat" "eqnarray"
+                                         "equation" "flalign" "gather"
+                                         "multline")
+                                   (zero-or-one "*" ))
+                          "}" (*? anything)
+                          "\\end{" (backref 2) "}" ))
+             replacement-str
+             raw-value))
+
+      ;; If we've added the '$$' delimiters, then also set the
+      ;; :post-blank property to add a blank line after this current
+      ;; latex equation environment
+      (let ((post-blank (org-element-property :post-blank latex-env)))
+        (unless (or (>= post-blank 1) (string-equal raw-value output))
+          (org-element-put-property latex-env :post-blank 1)))
+
+      ;; Return the latex equation with '$$' delimiters and possible
+      ;; (faked) equation numbering.
+      output)))
 
 (defun org-pandoc-link (link contents _info)
   "Transcode LINK object using the registered formatter for the
