@@ -217,7 +217,8 @@
                      (link      . org-pandoc-link)
                      (table     . org-pandoc-table)
                      (template  . org-pandoc-template)
-                     (paragraph . org-pandoc-paragraph))
+                     (paragraph . org-pandoc-paragraph)
+                     (src-block . org-pandoc-src-block))
   ;; :export-block "PANDOC"
   :menu-entry
   `(?p "export via pandoc"
@@ -1410,6 +1411,15 @@ the plist used as a communication channel."
   ;; Export the paragraph verbatim. Like `org-org-identity', but also
   ;; preserves #+ATTR_* tags in the output.
   (org-export-expand paragraph contents t))
+
+(defun org-pandoc-src-block (src-block contents info)
+  "Transcode a SRC-BLOCK element from Org to Pandoc.
+CONTENTS is the contents of the table. INFO is a plist holding
+contextual information."
+  (org-pandoc-set-caption-title src-block info "Listing %d:"
+                                #'org-pandoc--has-caption-p)
+  ;; Export the src-block with it's modified caption
+  (org-export-expand src-block contents t))
 
 (defun org-pandoc-identity (blob contents _info)
   "Transcode BLOB element or object back into Org syntax.
