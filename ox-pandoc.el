@@ -24,6 +24,7 @@
 (require 'dash)
 (require 'ht)
 (require 'cl-lib)
+(require 'ox-html) ; from `org', needed for `org-html-standalone-image-p'
 
 (defgroup org-pandoc nil
   "Options specific to Pandoc export back-end."
@@ -216,7 +217,7 @@
                      (link      . org-pandoc-link)
                      (table     . org-pandoc-table)
                      (template  . org-pandoc-template)
-                     (paragraph . org-pandoc-identity))
+                     (paragraph . org-pandoc-paragraph))
   ;; :export-block "PANDOC"
   :menu-entry
   `(?p "export via pandoc"
@@ -1397,6 +1398,18 @@ Option table is created in this stage."
     (if org-template
         (funcall org-template contents info)
     contents)))
+
+(defun org-pandoc-paragraph (paragraph contents info)
+  "Transcode a PARAGRAPH element from Org to Pandoc.
+CONTENTS is the contents of the paragraph, as a string.  INFO is
+the plist used as a communication channel."
+  (when (org-html-standalone-image-p paragraph info)
+    ;; Standalone image.
+    (org-pandoc-set-caption-title paragraph info "Figure %d:"
+                                  #'org-html-standalone-image-p))
+  ;; Export the paragraph verbatim. Like `org-org-identity', but also
+  ;; preserves #+ATTR_* tags in the output.
+  (org-export-expand paragraph contents t))
 
 (defun org-pandoc-identity (blob contents _info)
   "Transcode BLOB element or object back into Org syntax.
