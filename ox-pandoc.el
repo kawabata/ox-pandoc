@@ -214,6 +214,7 @@
 (org-export-define-derived-backend 'pandoc 'org
   :translate-alist '((latex-environment . org-pandoc-latex-environ)
                      (link      . org-pandoc-link)
+                     (table     . org-pandoc-table)
                      (template  . org-pandoc-template)
                      (paragraph . org-pandoc-identity))
   ;; :export-block "PANDOC"
@@ -1249,6 +1250,42 @@ t means output to buffer."
                                (concat (make-temp-name ".tmp") ".org") s)
     a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
 
+(defun org-pandoc--has-caption-p (element _info)
+  "Non-nil when ELEMENT has a caption affiliated keyword.
+INFO is a plist used as a communication channel.  This function
+is meant to be used as a predicate for `org-export-get-ordinal'."
+  (org-element-property :caption element))
+
+(defun org-pandoc-set-caption-title (element info fmt pred)
+  "Manually sets a numbered leader for the caption.
+Works around a bug in pandoc (present in at least up-to and
+including pandoc 1.18) which doesn't number things like Tables
+and Figures.  ELEMENT is the org-mode element.  INFO is a plist
+holding contextual information.  FMT is the format of the caption
+label, e.g., \"Table %d:\", or \"Figure %d:\".  PRED is a
+predicate function used by org-mode to keep track of
+table/figure/etc. numbers."
+  (let* ((caption (org-element-property :caption element))
+         (name (org-element-property :name element))
+         (name-target (when name (concat "<<" name ">>"))))
+    ;; caption is, e.g. "(((#("Testing table" 0 13 (:parent #8)))))"
+    ;; name is a link target, e.g., tab:test-table
+    ;; (cl-caaar caption) is then, e.g., "Testing table"
+    ;; name-target would be, e.g., "<<tab:test-table>>"
+    (when caption
+      (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
+          (setf (cl-caaar caption) (concat name-target (cl-caaar caption)))
+        ;; Get sequence number of current src-block among every
+        ;; src-block with a caption.  Additionally translate the caption
+        ;; label into the local language.
+        (let ((reference (org-export-get-ordinal element info nil pred))
+              (title-fmt (org-export-translate fmt :utf-8 info)))
+          ;; Set the text of the caption to have, e.g., 'Table <num>:
+          ;; ' prepended. Also add a target for any hyperlinks to this
+          ;; table. Pandoc doesn't pick up #+LABEL: elements.
+          (setf (cl-caaar caption) (concat (format title-fmt reference)
+                                           " " name-target (cl-caaar caption))))))))
+
 (defun org-pandoc-latex-environ (blob contents _info)
   "Transcode a latex environment for export with pandoc.
 Works around a bug in
@@ -1300,6 +1337,15 @@ description of the link, as a string, or nil.  INFO is ignored."
   (or (org-export-custom-protocol-maybe link contents 'pandoc)
       (org-export-custom-protocol-maybe link contents 'org)
       (org-element-link-interpreter link contents)))
+
+(defun org-pandoc-table (table contents info)
+  "Transcode a TABLE element from Org to Pandoc.
+CONTENTS is the contents of the table.  INFO is a plist holding
+contextual information."
+  (org-pandoc-set-caption-title table info "Table %d:"
+                                #'org-pandoc--has-caption-p)
+  ;; Export the table with it's modified caption
+  (org-export-expand table contents t))
 
 (defun org-pandoc-template (contents info)
   "Template processor for CONTENTS and INFO.
