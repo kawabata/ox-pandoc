@@ -1371,14 +1371,75 @@ INFO is a plist holding contextual information."
       ;; (faked) equation numbering.
       output)))
 
-(defun org-pandoc-link (link contents _info)
+(defun org-pandoc-link (link contents info)
   "Transcode LINK object using the registered formatter for the
 'pandoc backend.  If none exists, transcode using the registered
-formatter for the 'org export backend.  CONTENTS is the
-description of the link, as a string, or nil.  INFO is ignored."
-  (or (org-export-custom-protocol-maybe link contents 'pandoc)
-      (org-export-custom-protocol-maybe link contents 'org)
-      (org-element-link-interpreter link contents)))
+formatter for the 'org export backend.  For fuzzy (internal)
+links, resolve the link destination in order to determine the
+appropriate reference number of the target Table/Figure/Equation
+etc.  CONTENTS is the description of the link, as a string, or
+nil.  INFO is a plist holding contextual information."
+  (let ((type (org-element-property :type link)))
+    (cond
+     ;; Try exporting with a registered formatter for 'pandoc
+     ((org-export-custom-protocol-maybe link contents 'pandoc))
+     ;; Try exporting with a registered formatter for 'org
+     ((org-export-custom-protocol-maybe link contents 'org))
+
+     ;; Otherwise, override fuzzy (internal) links that point to
+     ;; numbered items such as Tables, Figures, Sections, etc.
+     ((string= type "fuzzy")
+      (let* ((path (org-element-property :path link))
+             (destination (org-export-resolve-fuzzy-link link info))
+             (dest-type (when destination (org-element-type destination)))
+             (number nil))
+        ;; Different link targets require different predicates to the
+        ;; `org-export-get-ordinal' function in order to resolve to
+        ;; the correct number. NOTE: Should be the same predicate
+        ;; function as used to generate the number in the
+        ;; caption/label/listing etc.
+        (cond
+         ((eq dest-type 'paragraph)   ; possible figure
+          (setq number (org-export-get-ordinal
+                        destination info nil #'org-html-standalone-image-p)))
+
+         ((eq dest-type 'latex-environment)
+          (setq number (org-export-get-ordinal
+                        destination info nil #'org-pandoc--numbered-equation-p)))
+
+         (t                           ; captioned items
+          (setq number (org-export-get-ordinal
+                        destination info nil #'org-pandoc--has-caption-p))))
+
+        ;; Numbered items have the number listed in the link
+        ;; description, , fall back on the text in `contents'
+        ;; if there's no resolvable destination
+        (cond
+         ;; Numbered items have the number listed in the link description
+         (number
+          (format "[[#%s][%s]]" path
+                  (if (atom number) (number-to-string number)
+                    (mapconcat #'number-to-string number "."))))
+
+         ;; Unnumbered headlines have the heading name in the link
+         ;; description
+         ((eq dest-type 'headline)
+          (format "[[#%s][%s]]" path
+                  (org-export-data
+                   (org-element-property :title destination) info)))
+
+         ;; No resolvable destination, fallback on the text in `contents'
+         ((eq destination nil)
+          (when (org-string-nw-p contents) contents))
+
+         ;; Valid destination, but without a numbered caption/equation
+         ;; and not a heading, fallback to standard org-mode link format
+         (t
+          (org-element-link-interpreter link contents))
+         )))
+
+     ;; Otherwise, fallback to standard org-mode link format
+     ((org-element-link-interpreter link contents)))))
 
 (defun org-pandoc-table (table contents info)
   "Transcode a TABLE element from Org to Pandoc.
