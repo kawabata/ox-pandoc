@@ -1276,17 +1276,17 @@ table/figure/etc. numbers."
     ;; name-target would be, e.g., "<<tab:test-table>>"
     (when caption
       (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
-          (setf (cl-caaar caption) (concat name-target (cl-caaar caption)))
+          (push name-target (caar caption))
         ;; Get sequence number of current src-block among every
         ;; src-block with a caption.  Additionally translate the caption
         ;; label into the local language.
-        (let ((reference (org-export-get-ordinal element info nil pred))
-              (title-fmt (org-export-translate fmt :utf-8 info)))
+        (let* ((reference (org-export-get-ordinal element info nil pred))
+               (title-fmt (org-export-translate fmt :utf-8 info))
+               (new-name-target (concat (format title-fmt reference) " " name-target)))
           ;; Set the text of the caption to have, e.g., 'Table <num>:
           ;; ' prepended. Also add a target for any hyperlinks to this
-          ;; table. Pandoc doesn't pick up #+LABEL: elements.
-          (setf (cl-caaar caption) (concat (format title-fmt reference)
-                                           " " name-target (cl-caaar caption))))))))
+          ;; table. Pandoc doesn't pick up #+LABEL: or #+NAME: elements.
+          (push new-name-target (caar caption)))))))
 
 (defun org-pandoc--numbered-equation-p (element _info)
   "Non-nil when ELEMENT is a numbered latex equation environment.
