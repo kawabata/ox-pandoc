@@ -1459,7 +1459,7 @@ OPTIONS is a hashtable.  It runs asynchronously."
                format)))
          (args
           `("-f" "org"
-            "-t" ,(if (string-match output-format "^markdown")
+            "-t" ,(if (string-match "^markdown" output-format)
                       (concat output-format org-pandoc-markdown-extension)
                     output-format)
             ,@(and output-file
