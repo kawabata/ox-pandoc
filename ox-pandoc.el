@@ -20,6 +20,8 @@
 
 ;;; Code:
 
+(eval-when-compile
+  (require 'cl))
 (require 'ox-org)
 (require 'dash)
 (require 'ht)
