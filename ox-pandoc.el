@@ -24,6 +24,7 @@
 (require 'dash)
 (require 'ht)
 (require 'cl-lib)
+(require 'ox-html) ; from `org', needed for `org-html-standalone-image-p'
 
 (defgroup org-pandoc nil
   "Options specific to Pandoc export back-end."
@@ -214,8 +215,10 @@
 (org-export-define-derived-backend 'pandoc 'org
   :translate-alist '((latex-environment . org-pandoc-latex-environ)
                      (link      . org-pandoc-link)
+                     (table     . org-pandoc-table)
                      (template  . org-pandoc-template)
-                     (paragraph . org-pandoc-identity))
+                     (paragraph . org-pandoc-paragraph)
+                     (src-block . org-pandoc-src-block))
   ;; :export-block "PANDOC"
   :menu-entry
   `(?p "export via pandoc"
@@ -1249,7 +1252,57 @@ t means output to buffer."
                                (concat (make-temp-name ".tmp") ".org") s)
     a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
 
-(defun org-pandoc-latex-environ (blob contents _info)
+(defun org-pandoc--has-caption-p (element _info)
+  "Non-nil when ELEMENT has a caption affiliated keyword.
+INFO is a plist used as a communication channel.  This function
+is meant to be used as a predicate for `org-export-get-ordinal'."
+  (org-element-property :caption element))
+
+(defun org-pandoc-set-caption-title (element info fmt pred)
+  "Manually sets a numbered leader for the caption.
+Works around a bug in pandoc (present in at least up-to and
+including pandoc 1.18) which doesn't number things like Tables
+and Figures.  ELEMENT is the org-mode element.  INFO is a plist
+holding contextual information.  FMT is the format of the caption
+label, e.g., \"Table %d:\", or \"Figure %d:\".  PRED is a
+predicate function used by org-mode to keep track of
+table/figure/etc. numbers."
+  (let* ((caption (org-element-property :caption element))
+         (name (org-element-property :name element))
+         (name-target (when name (concat "<<" name ">>"))))
+    ;; caption is, e.g. "(((#("Testing table" 0 13 (:parent #8)))))"
+    ;; name is a link target, e.g., tab:test-table
+    ;; (cl-caaar caption) is then, e.g., "Testing table"
+    ;; name-target would be, e.g., "<<tab:test-table>>"
+    (when caption
+      (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
+          (push name-target (caar caption))
+        ;; Get sequence number of current src-block among every
+        ;; src-block with a caption.  Additionally translate the caption
+        ;; label into the local language.
+        (let* ((reference (org-export-get-ordinal element info nil pred))
+               (title-fmt (org-export-translate fmt :utf-8 info))
+               (new-name-target (concat (format title-fmt reference) " " name-target)))
+          ;; Set the text of the caption to have, e.g., 'Table <num>:
+          ;; ' prepended. Also add a target for any hyperlinks to this
+          ;; table. Pandoc doesn't pick up #+LABEL: or #+NAME: elements.
+          (push new-name-target (caar caption)))))))
+
+(defun org-pandoc--numbered-equation-p (element _info)
+  "Non-nil when ELEMENT is a numbered latex equation environment.
+INFO is a plist used as a communication channel.  This function
+is meant to be used as a predicate for `org-export-get-ordinal'."
+  (let ((raw-value (org-element-property :value element))
+        (case-fold-search t))
+    (string-match-p
+     (rx "\\begin{"
+         (group-n 1 (or "align" "alignat" "eqnarray" "equation"
+                        "flalign" "gather" "multline"))
+         "}" (*? anything)
+         "\\end{" (backref 1) "}" )
+     raw-value)))
+
+(defun org-pandoc-latex-environ (latex-env contents info)
   "Transcode a latex environment for export with pandoc.
 Works around a bug in
 pandoc (https://github.com/jgm/pandoc/issues/1764, present in at
@@ -1260,46 +1313,142 @@ the maths environment as a latex equation.  Also adds surrounding
 line-breaks so that pandoc treats the math environment as its own
 paragraph.  This avoids having text before or after the math
 environment ending up on the same line as the equation.
-CONTENTS is its contents, as a string or nil.  INFO is ignored."
-  (let ((raw-value (org-export-expand blob contents t)))
-      ;; If we're exporting to a TeX-based format, there's no need for
-      ;; this hack
-      (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
-          raw-value
-        ;; Otherwise, add '$$' elements before and after the block to
-        ;; get pandoc to process it.
-        (let* ((post-blank (org-element-property :post-blank blob))
-               (case-fold-search t)
-               (preface
-                (replace-regexp-in-string
-                 (rx (group-n 1 "\\begin{"
-                              (or "align" "alignat" "eqnarray" "equation" "flalign" "gather" "multline")
-                              (zero-or-one "*" ) "}"))
-                 "\n$$\\1"
-                 raw-value))
-               (output
-                (replace-regexp-in-string
-                 (rx (group-n 1 "\\end{"
-                              (or "align" "alignat" "eqnarray" "equation" "flalign" "gather" "multline")
-                              (zero-or-one "*" ) "}"))
-                 "\\1$$"
-                 preface)))
-          ;; If we've added the '$$' delimiters, then also set the
-          ;; :post-blank property to add a blank line after this current
-          ;; latex equation environment
-          (unless (or (>= post-blank 1)
-                      (string-equal raw-value output))
-            (org-element-put-property blob :post-blank 1))
-          output))))
+Additionally, adds a fake equation number if the environment
+should have one.  CONTENTS is its contents, as a string or nil.
+INFO is a plist holding contextual information."
+  (let ((raw-value (org-export-expand latex-env contents t))
+        (case-fold-search t)
+        (replacement-str "\n$$\\1$$")
+        (output nil))
+    ;; If we're exporting to a TeX-based format, there's no need for
+    ;; this hack
+    (if (member org-pandoc-format '(beamer beamer-pdf latex latex-pdf))
+        raw-value
+      ;; Otherwise, add '$$' elements before and after the block to get
+      ;; pandoc to process it.
+      ;;
+      ;; For numbered equation environments, we need to fake the
+      ;; equation numbering before sending it to pandoc. Fake equation
+      ;; numbers are typeset as "(%d)", offset from the main equation by
+      ;; a "\qquad" space, ala pandoc-crossref
+      ;; (https://github.com/lierdakil/pandoc-crossref)
+      (when (org-pandoc--numbered-equation-p latex-env info)
+        (let ((reference (org-export-get-ordinal
+                          latex-env info nil
+                          #'org-pandoc--numbered-equation-p)))
+          (setq replacement-str
+                (format "\n$$\\1 \\\\qquad (%d)$$" reference))))
 
-(defun org-pandoc-link (link contents _info)
+      ;; For equations with a named links target (`#+NAME:' block), add
+      ;; the target to the top of the equation
+      (let ((name (org-element-property :name latex-env)))
+        (when name
+          (setq replacement-str
+                (concat "\n<<" name ">>" replacement-str))))
+
+      ;; Add '$$' elements before and after the block to get pandoc to
+      ;; process it.
+      (setq output
+            (replace-regexp-in-string
+             (rx (group-n 1 "\\begin{"
+                          (group-n 2 (or "align" "alignat" "eqnarray"
+                                         "equation" "flalign" "gather"
+                                         "multline")
+                                   (zero-or-one "*" ))
+                          "}" (*? anything)
+                          "\\end{" (backref 2) "}" ))
+             replacement-str
+             raw-value))
+
+      ;; If we've added the '$$' delimiters, then also set the
+      ;; :post-blank property to add a blank line after this current
+      ;; latex equation environment
+      (let ((post-blank (org-element-property :post-blank latex-env)))
+        (unless (or (>= post-blank 1) (string-equal raw-value output))
+          (org-element-put-property latex-env :post-blank 1)))
+
+      ;; Return the latex equation with '$$' delimiters and possible
+      ;; (faked) equation numbering.
+      output)))
+
+(defun org-pandoc-link (link contents info)
   "Transcode LINK object using the registered formatter for the
 'pandoc backend.  If none exists, transcode using the registered
-formatter for the 'org export backend.  CONTENTS is the
-description of the link, as a string, or nil.  INFO is ignored."
-  (or (org-export-custom-protocol-maybe link contents 'pandoc)
-      (org-export-custom-protocol-maybe link contents 'org)
-      (org-element-link-interpreter link contents)))
+formatter for the 'org export backend.  For fuzzy (internal)
+links, resolve the link destination in order to determine the
+appropriate reference number of the target Table/Figure/Equation
+etc.  CONTENTS is the description of the link, as a string, or
+nil.  INFO is a plist holding contextual information."
+  (let ((type (org-element-property :type link)))
+    (cond
+     ;; Try exporting with a registered formatter for 'pandoc
+     ((org-export-custom-protocol-maybe link contents 'pandoc))
+     ;; Try exporting with a registered formatter for 'org
+     ((org-export-custom-protocol-maybe link contents 'org))
+
+     ;; Otherwise, override fuzzy (internal) links that point to
+     ;; numbered items such as Tables, Figures, Sections, etc.
+     ((string= type "fuzzy")
+      (let* ((path (org-element-property :path link))
+             (destination (org-export-resolve-fuzzy-link link info))
+             (dest-type (when destination (org-element-type destination)))
+             (number nil))
+        ;; Different link targets require different predicates to the
+        ;; `org-export-get-ordinal' function in order to resolve to
+        ;; the correct number. NOTE: Should be the same predicate
+        ;; function as used to generate the number in the
+        ;; caption/label/listing etc.
+        (cond
+         ((eq dest-type 'paragraph)   ; possible figure
+          (setq number (org-export-get-ordinal
+                        destination info nil #'org-html-standalone-image-p)))
+
+         ((eq dest-type 'latex-environment)
+          (setq number (org-export-get-ordinal
+                        destination info nil #'org-pandoc--numbered-equation-p)))
+
+         (t                           ; captioned items
+          (setq number (org-export-get-ordinal
+                        destination info nil #'org-pandoc--has-caption-p))))
+
+        ;; Numbered items have the number listed in the link
+        ;; description, , fall back on the text in `contents'
+        ;; if there's no resolvable destination
+        (cond
+         ;; Numbered items have the number listed in the link description
+         (number
+          (format "[[#%s][%s]]" path
+                  (if (atom number) (number-to-string number)
+                    (mapconcat #'number-to-string number "."))))
+
+         ;; Unnumbered headlines have the heading name in the link
+         ;; description
+         ((eq dest-type 'headline)
+          (format "[[#%s][%s]]" path
+                  (org-export-data
+                   (org-element-property :title destination) info)))
+
+         ;; No resolvable destination, fallback on the text in `contents'
+         ((eq destination nil)
+          (when (org-string-nw-p contents) contents))
+
+         ;; Valid destination, but without a numbered caption/equation
+         ;; and not a heading, fallback to standard org-mode link format
+         (t
+          (org-element-link-interpreter link contents))
+         )))
+
+     ;; Otherwise, fallback to standard org-mode link format
+     ((org-element-link-interpreter link contents)))))
+
+(defun org-pandoc-table (table contents info)
+  "Transcode a TABLE element from Org to Pandoc.
+CONTENTS is the contents of the table.  INFO is a plist holding
+contextual information."
+  (org-pandoc-set-caption-title table info "Table %d:"
+                                #'org-pandoc--has-caption-p)
+  ;; Export the table with it's modified caption
+  (org-export-expand table contents t))
 
 (defun org-pandoc-template (contents info)
   "Template processor for CONTENTS and INFO.
@@ -1351,6 +1500,27 @@ Option table is created in this stage."
     (if org-template
         (funcall org-template contents info)
     contents)))
+
+(defun org-pandoc-paragraph (paragraph contents info)
+  "Transcode a PARAGRAPH element from Org to Pandoc.
+CONTENTS is the contents of the paragraph, as a string.  INFO is
+the plist used as a communication channel."
+  (when (org-html-standalone-image-p paragraph info)
+    ;; Standalone image.
+    (org-pandoc-set-caption-title paragraph info "Figure %d:"
+                                  #'org-html-standalone-image-p))
+  ;; Export the paragraph verbatim. Like `org-org-identity', but also
+  ;; preserves #+ATTR_* tags in the output.
+  (org-export-expand paragraph contents t))
+
+(defun org-pandoc-src-block (src-block contents info)
+  "Transcode a SRC-BLOCK element from Org to Pandoc.
+CONTENTS is the contents of the table. INFO is a plist holding
+contextual information."
+  (org-pandoc-set-caption-title src-block info "Listing %d:"
+                                #'org-pandoc--has-caption-p)
+  ;; Export the src-block with it's modified caption
+  (org-export-expand src-block contents t))
 
 (defun org-pandoc-identity (blob contents _info)
   "Transcode BLOB element or object back into Org syntax.
