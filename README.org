@@ -140,6 +140,8 @@ Following is an example:
 : #+PANDOC_OPTIONS: standalone:t latex-engine:xelatex
 : #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
 : #+BIBLIOGRAPHY: sample.bib
+: # Specifying Multiple values to single options by using colon-sparated lists.
+: #+PANDOC_OPTIONS: filter:pandoc-zotxt:pandoc-citeproc
 : #+PANDOC_OPTIONS: csl:sample.csl
 : #+PANDOC_METADATA: page-progression-direction:ltr
 

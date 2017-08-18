@@ -1,15 +1,28 @@
 ;;; ox-pandoc.el --- org exporter for pandoc.        -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014-2015 KAWABATA, Taichi
+;; Copyright (C) 2014-2017 KAWABATA, Taichi
 
 ;; Filename: ox-pandoc.el
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.170707
+;; Version: 1.170817
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0") (cl-lib "0.5"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
