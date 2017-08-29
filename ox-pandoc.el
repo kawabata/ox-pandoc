@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.170817
+;; Version: 1.170830
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0") (cl-lib "0.5"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -47,20 +47,24 @@
   :group 'org-export)
 
 (defconst org-pandoc-valid-options
-  '(ascii atx-headers base-header-level biblatex bibliography chapters
-    citation-abbreviations columns csl css data-dir
-    default-image-extension dump-args email-obfuscation
+  '(ascii atx-headers base-header-level bash-completion biblatex
+    bibliography chapters citation-abbreviations columns csl css
+    data-dir default-image-extension dpi dump-args email-obfuscation
     epub-chapter-level epub-cover-image epub-embed-font epub-metadata
-    epub-stylesheet filter gladtex highlight-style html-q-tags html5
-    id-prefix ignore-args include-after-body include-before-body
-    include-in-header incremental indented-code-classes jsmath
-    latex-engine latex-engine-opt latexmathml listings mathjax mathml
-    metadata mimetex natbib no-highlight no-tex-ligatures no-wrap
-    normalize number-offset number-sections offline old-dashes output
-    parse-raw preserve-tabs read reference-docx reference-links
-    reference-odt section-divs self-contained slide-level smart
-    standalone tab-stop table-of-contents template title-prefix to
-    toc-depth variable verbose version webtex))
+    epub-stylesheet extract-media file-scope filter gladtex
+    highlight-style html-q-tags html5 id-prefix ignore-args
+    include-after-body include-before-body include-in-header incremental
+    indented-code-classes jsmath katex-stylesheet katex latex-engine
+    latex-engine-opt latexmathml list-extensions
+    list-highlight-languages list-highlight-styles list-input-formats
+    list-output-formats listings mathjax mathml metadata mimetex natbib
+    no-highlight no-tex-ligatures no-wrap normalize number-offset
+    number-sections offline old-dashes output parse-raw preserve-tabs
+    print-default-data-file print-default-template reference-docx
+    reference-links reference-location reference-odt section-divs
+    self-contained slide-level smart standalone tab-stop
+    table-of-contents template title-prefix toc top-level-division
+    toc-depth trace track-changes variable verbose version webtex wrap))
 
 (defconst org-pandoc-colon-separated-options
   '(include-in-header include-before-body include-after-body css
@@ -70,7 +74,8 @@
   '(template include-in-header include-before-body include-after-body
     reference-odt reference-docx epub-stylesheet epub-cover-image
     epub-metadata epub-embed-font bibliography csl
-    citation-abbreviations data-dir))
+    citation-abbreviations data-dir extract-media
+    print-default-data-file))
 
 (defconst org-pandoc-extensions
   '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf)
@@ -91,7 +96,7 @@
            (alist :key-type (choice ,@(--map `(const ,it) org-pandoc-valid-options))
                   :value-type (choice (const t) (const nil) string))))
 
-(defcustom org-pandoc-options '((standalone . t) (mathjax . t) (parse-raw . t))
+(defcustom org-pandoc-options '((standalone . t) (mathjax . t)) ;;  (parse-raw . t)
   "Pandoc options."
   :group 'org-pandoc
   :type org-pandoc-option-type)
