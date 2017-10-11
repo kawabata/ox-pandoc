@@ -162,7 +162,7 @@ settings in your init file.
 
 * Installation
 
-You can install this tool with [[melpa.milkbox.net][MELPA]].  For example,
+You can install this tool with [[www.melpa.org][MELPA]].  For example,
 
 #+BEGIN_SRC emacs-lisp
 (setq package-archives
