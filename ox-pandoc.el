@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.170830
+;; Version: 1.171107
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0") (cl-lib "0.5"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -47,56 +47,80 @@
   :group 'org-export)
 
 (defconst org-pandoc-valid-options
-  '(ascii atx-headers base-header-level bash-completion biblatex
-    bibliography chapters citation-abbreviations columns csl css
+  '(abbreviations
+    ascii asciimathml
+    atx-headers base-header-level bash-completion biblatex
+    bibliography citation-abbreviations columns csl css
     data-dir default-image-extension dpi dump-args email-obfuscation
+    eol
     epub-chapter-level epub-cover-image epub-embed-font epub-metadata
-    epub-stylesheet extract-media file-scope filter gladtex
-    highlight-style html-q-tags html5 id-prefix ignore-args
+    epub-subdirectory extract-media
+    fail-if-warnings
+    file-scope filter gladtex
+    highlight-style html-q-tags id-prefix ignore-args
     include-after-body include-before-body include-in-header incremental
-    indented-code-classes jsmath katex-stylesheet katex latex-engine
-    latex-engine-opt latexmathml list-extensions
-    list-highlight-languages list-highlight-styles list-input-formats
-    list-output-formats listings mathjax mathml metadata mimetex natbib
-    no-highlight no-tex-ligatures no-wrap normalize number-offset
-    number-sections offline old-dashes output parse-raw preserve-tabs
-    print-default-data-file print-default-template reference-docx
-    reference-links reference-location reference-odt section-divs
-    self-contained slide-level smart standalone tab-stop
+    indented-code-classes jsmath katex
+    latexmathml list-extensions
+    list-highlight-languages list-highlight-styles ;; list-input-formats
+    ;; list-output-formats
+    listings log lua-filter mathjax mathml metadata mimetex natbib
+    no-highlight
+    ;; no-tex-ligatures no-wrap normalize
+    number-offset
+    number-sections
+    ;; offline old-dashes output parse-raw
+    pdf-engine-opt pdf-engine
+    preserve-tabs
+    print-default-data-file print-default-template
+    quiet reference-doc
+    reference-links reference-location
+    ;; reference-odt
+    resource-path
+    section-divs
+    self-contained slide-level
+    ;; smart
+    standalone strip-comments syntax-definition tab-stop
     table-of-contents template title-prefix toc top-level-division
     toc-depth trace track-changes variable verbose version webtex wrap))
 
 (defconst org-pandoc-colon-separated-options
-  '(include-in-header include-before-body include-after-body css
-    epub-embed-font bibliography filter))
+  '(abbreviations css
+    include-in-header include-before-body include-after-body
+    pdf-engine-opt
+    epub-embed-font bibliography filter lua-filter))
 
 (defconst org-pandoc-file-options
-  '(template include-in-header include-before-body include-after-body
-    reference-odt reference-docx epub-stylesheet epub-cover-image
-    epub-metadata epub-embed-font bibliography csl
-    citation-abbreviations data-dir extract-media
-    print-default-data-file))
+  '(abbreviations bibliography citation-abbreviations csl
+    epub-cover-image epub-embed-font epub-metadata
+    include-after-body include-before-body include-in-header
+    log print-default-data-file
+    reference-doc syntax-definition template
+    ))
 
 (defconst org-pandoc-extensions
-  '((asciidoc . txt) (beamer . tex) (beamer-pdf . pdf)
+  '((asciidoc . txt) (beamer . tex)
+    ;;(beamer-pdf . pdf)
     (commonmark . md) (context . tex)
-    (docbook . dbk) (docbook5 . dbk) (dokuwiki . doku)
-    (dzslides . html) (epub3 . epub)
-    (haddock . hs) (html5 . html) (latex . tex)
-    (latex-pdf . pdf) (markdown . md) (markdown_github . md)
-    (markdown_mmd . md) (markdown_strict . md) (native . hs)
+    (docbook4 . dbk) (docbook5 . dbk) (dokuwiki . doku)
+    (dzslides . html) (epub2 . epub) (epub3 . epub) (gfm . md)
+    (haddock . hs) (html4 . html) (html5 . html) (latex . tex)
+    ;;(latex-pdf . pdf)
+    (markdown . md) ;; (markdown_github . md)
+    (markdown_mmd . md) (markdown_phpextra . md)
+    (markdown_strict . md) (native . hs)
     (opendocument . xml) (plain . txt) (revealjs . html) (s5 . html)
-    (slideous . html) (slidy . html) (texinfo . texi)))
+    (slideous . html) (slidy . html) (texinfo . texi)
+    (zimwiki . zim)))
 
-(defconst org-pandoc-translate-output-format
-  '((beamer-pdf . beamer) (latex-pdf . latex)))
+;;(defconst org-pandoc-translate-output-format
+;;  '((beamer-pdf . beamer) (latex-pdf . latex)))
 
 (defconst org-pandoc-option-type
   `(choice (const t) (const nil)
            (alist :key-type (choice ,@(--map `(const ,it) org-pandoc-valid-options))
                   :value-type (choice (const t) (const nil) string))))
 
-(defcustom org-pandoc-options '((standalone . t) (mathjax . t)) ;;  (parse-raw . t)
+(defcustom org-pandoc-options '((standalone . t)) ;; (mathjax . t) (parse-raw . t)
   "Pandoc options."
   :group 'org-pandoc
   :type org-pandoc-option-type)
@@ -108,125 +132,126 @@
 
 (defcustom org-pandoc-menu-entry
   '(
+    ;;(?0 "to jats." org-pandoc-export-to-jats)
+    ;;(?0 "to jats and open." org-pandoc-export-to-jats-and-open)
+    ;;(?  "as jats." org-pandoc-export-as-jats)
+    ;;(?1 "to epub2 and open." org-pandoc-export-to-epub2-and-open)
+    ;;(?! "to epub2." org-pandoc-export-to-epub2)
+    ;;(?2 "to tei." org-pandoc-export-to-tei)
+    ;;(?2 "to tei and open." org-pandoc-export-to-tei-and-open)
+    ;;(?" "as tei." org-pandoc-export-as-tei)
+    ;;(?3 "to markdown_mmd." org-pandoc-export-to-markdown_mmd)
+    ;;(?3 "to markdown_mmd and open." org-pandoc-export-to-markdown_mmd-and-open)
+    ;;(?# "as markdown_mmd." org-pandoc-export-as-markdown_mmd)
+    ;;(?4 "to html5." org-pandoc-export-to-html5)
+    (?4 "to html5 and open." org-pandoc-export-to-html5-and-open)
+    (?$ "as html5." org-pandoc-export-as-html5)
+    (?5 "to html5-pdf and open." org-pandoc-export-to-html5-pdf-and-open)
+    (?% "to html5-pdf." org-pandoc-export-to-html5-pdf)
+    ;;(?6 "to markdown_phpextra." org-pandoc-export-to-markdown_phpextra)
+    ;;(?6 "to markdown_phpextra and open." org-pandoc-export-to-markdown_phpextra-and-open)
+    ;;(?& "as markdown_phpextra." org-pandoc-export-as-markdown_phpextra)
+    ;;(?7 "to markdown_strict." org-pandoc-export-to-markdown_strict)
+    ;;(?7 "to markdown_strict and open." org-pandoc-export-to-markdown_strict-and-open)
+    ;;(?' "as markdown_strict." org-pandoc-export-as-markdown_strict)
+    ;;(?8 "to opendocument." org-pandoc-export-to-opendocument)
+    ;;(?8 "to opendocument and open." org-pandoc-export-to-opendocument-and-open)
+    ;;(?( "as opendocument." org-pandoc-export-as-opendocument)
+    ;;(?9 "to opml." org-pandoc-export-to-opml)
+    (?9 "to opml and open." org-pandoc-export-to-opml-and-open)
+    ;;(?\) "as opml." org-pandoc-export-as-opml)
+    ;;(?: "to rst." org-pandoc-export-to-rst)
+    ;;(?: "to rst and open." org-pandoc-export-to-rst-and-open)
+    ;;(?* "as rst." org-pandoc-export-as-rst)
+    ;;(?< "to slideous." org-pandoc-export-to-slideous)
+    (?< "to slideous and open." org-pandoc-export-to-slideous-and-open)
+    (?, "as slideous." org-pandoc-export-as-slideous)
+    (?= "to ms-pdf and open." org-pandoc-export-to-ms-pdf-and-open)
+    (?- "to ms-pdf." org-pandoc-export-to-ms-pdf)
+    ;;(?> "to textile." org-pandoc-export-to-textile)
+    ;;(?> "to textile and open." org-pandoc-export-to-textile-and-open)
+    ;;(?. "as textile." org-pandoc-export-as-textile)
     ;;(?a "to asciidoc." org-pandoc-export-to-asciidoc)
-    (?a "to asciidoc and open." org-pandoc-export-to-asciidoc-and-open)
-    (?A "as asciidoc." org-pandoc-export-as-asciidoc)
-    ;;(?1 "to beamer." org-pandoc-export-to-beamer)
-    (?1 "to beamer and open." org-pandoc-export-to-beamer-and-open)
-    (?! "as beamer." org-pandoc-export-as-beamer)
+    ;;(?a "to asciidoc and open." org-pandoc-export-to-asciidoc-and-open)
+    ;;(?A "as asciidoc." org-pandoc-export-as-asciidoc)
     (?b "to beamer-pdf and open." org-pandoc-export-to-beamer-pdf-and-open)
     (?B "to beamer-pdf." org-pandoc-export-to-beamer-pdf)
-    ;;(?q "to commonmark." org-pandoc-export-to-commonmark)
-    (?q "to commonmark and open." org-pandoc-export-to-commonmark-and-open)
-    (?Q "as commonmark." org-pandoc-export-as-commonmark)
-    ;;(?c "to context." org-pandoc-export-to-context)
-    (?c "to context and open." org-pandoc-export-to-context-and-open)
-    (?C "as context." org-pandoc-export-as-context)
-    ;;(?d "to docbook." org-pandoc-export-to-docbook)
-    ;;(?d "to docbook and open." org-pandoc-export-to-docbook-and-open)
-    ;;(?D "as docbook." org-pandoc-export-as-docbook)
-    ;;(?d "to docbook." org-pandoc-export-to-docbook5)
-    (?d "to docbook and open." org-pandoc-export-to-docbook5-and-open)
-    (?D "as docbook." org-pandoc-export-as-docbook5)
-    (?x "to docx and open." org-pandoc-export-to-docx-and-open)
-    (?X "to docx." org-pandoc-export-to-docx)
-    ;;(?u "to dokuwiki." org-pandoc-export-to-dokuwiki)
-    (?u "to dokuwiki and open." org-pandoc-export-to-dokuwiki-and-open)
-    (?U "as dokuwiki." org-pandoc-export-as-dokuwiki)
-    ;;(?z "to dzslides." org-pandoc-export-to-dzslides)
-    (?z "to dzslides and open." org-pandoc-export-to-dzslides-and-open)
-    (?Z "as dzslides." org-pandoc-export-as-dzslides)
-    (?3 "to epub and open." org-pandoc-export-to-epub-and-open)
-    (?# "to epub." org-pandoc-export-to-epub)
+    (?c "to context-pdf and open." org-pandoc-export-to-context-pdf-and-open)
+    (?C "to context-pdf." org-pandoc-export-to-context-pdf)
+    ;;(?d "to docbook5." org-pandoc-export-to-docbook5)
+    (?d "to docbook5 and open." org-pandoc-export-to-docbook5-and-open)
+    (?D "as docbook5." org-pandoc-export-as-docbook5)
     (?e "to epub3 and open." org-pandoc-export-to-epub3-and-open)
     (?E "to epub3." org-pandoc-export-to-epub3)
     ;;(?f "to fb2." org-pandoc-export-to-fb2)
-    (?f "to fb2 and open." org-pandoc-export-to-fb2-and-open)
-    (?F "as fb2." org-pandoc-export-as-fb2)
-    ;;(?~ "to haddock." org-pandoc-export-to-haddock)
-    (?~ "to haddock and open." org-pandoc-export-to-haddock-and-open)
-    (?^ "as haddock." org-pandoc-export-as-haddock)
-    ;;(?5 "to html." org-pandoc-export-to-html)
-    (?5 "to html and open." org-pandoc-export-to-html-and-open)
-    (?% "as html." org-pandoc-export-as-html)
-    ;;(?h "to html5." org-pandoc-export-to-html5)
-    (?h "to html5 and open." org-pandoc-export-to-html5-and-open)
-    (?H "as html5." org-pandoc-export-as-html5)
+    ;;(?f "to fb2 and open." org-pandoc-export-to-fb2-and-open)
+    ;;(?F "as fb2." org-pandoc-export-as-fb2)
+    ;;(?g "to gfm." org-pandoc-export-to-gfm)
+    (?g "to gfm and open." org-pandoc-export-to-gfm-and-open)
+    (?G "as gfm." org-pandoc-export-as-gfm)
+    ;;(?h "to html4." org-pandoc-export-to-html4)
+    (?h "to html4 and open." org-pandoc-export-to-html4-and-open)
+    (?H "as html4." org-pandoc-export-as-html4)
     ;;(?i "to icml." org-pandoc-export-to-icml)
     (?i "to icml and open." org-pandoc-export-to-icml-and-open)
     (?I "as icml." org-pandoc-export-as-icml)
     ;;(?j "to json." org-pandoc-export-to-json)
     (?j "to json and open." org-pandoc-export-to-json-and-open)
     (?J "as json." org-pandoc-export-as-json)
-    ;;(?= "to latex." org-pandoc-export-to-latex)
-    (?= "to latex and open." org-pandoc-export-to-latex-and-open)
-    (?- "as latex." org-pandoc-export-as-latex)
+    ;;(?k "to markdown." org-pandoc-export-to-markdown)
+    ;;(?k "to markdown and open." org-pandoc-export-to-markdown-and-open)
+    ;;(?K "as markdown." org-pandoc-export-as-markdown)
     (?l "to latex-pdf and open." org-pandoc-export-to-latex-pdf-and-open)
     (?L "to latex-pdf." org-pandoc-export-to-latex-pdf)
     ;;(?m "to man." org-pandoc-export-to-man)
     (?m "to man and open." org-pandoc-export-to-man-and-open)
     (?M "as man." org-pandoc-export-as-man)
-    ;;(?k "to markdown." org-pandoc-export-to-markdown)
-    (?k "to markdown and open." org-pandoc-export-to-markdown-and-open)
-    (?K "as markdown." org-pandoc-export-as-markdown)
-    ;;(?g "to markdown_github." org-pandoc-export-to-markdown_github)
-    (?g "to markdown_github and open." org-pandoc-export-to-markdown_github-and-open)
-    (?G "as markdown_github." org-pandoc-export-as-markdown_github)
-    ;;(?4 "to markdown_mmd." org-pandoc-export-to-markdown_mmd)
-    (?4 "to markdown_mmd and open." org-pandoc-export-to-markdown_mmd-and-open)
-    (?$ "as markdown_mmd." org-pandoc-export-as-markdown_mmd)
-    ;;(?6 "to markdown_phpextra." org-pandoc-export-to-markdown_phpextra)
-    (?6 "to markdown_phpextra and open." org-pandoc-export-to-markdown_phpextra-and-open)
-    (?& "as markdown_phpextra." org-pandoc-export-as-markdown_phpextra)
-    ;;(?7 "to markdown_strict." org-pandoc-export-to-markdown_strict)
-    (?7 "to markdown_strict and open." org-pandoc-export-to-markdown_strict-and-open)
-    (?' "as markdown_strict." org-pandoc-export-as-markdown_strict)
-    ;;(?w "to mediawiki." org-pandoc-export-to-mediawiki)
-    (?w "to mediawiki and open." org-pandoc-export-to-mediawiki-and-open)
-    (?W "as mediawiki." org-pandoc-export-as-mediawiki)
     ;;(?n "to native." org-pandoc-export-to-native)
     (?n "to native and open." org-pandoc-export-to-native-and-open)
     (?N "as native." org-pandoc-export-as-native)
     (?o "to odt and open." org-pandoc-export-to-odt-and-open)
     (?O "to odt." org-pandoc-export-to-odt)
-    (?8 "to opendocument and open." org-pandoc-export-to-opendocument-and-open)
-    (?( "to opendocument." org-pandoc-export-to-opendocument)
-    ;;(?9 "to opml." org-pandoc-export-to-opml)
-    (?9 "to opml and open." org-pandoc-export-to-opml-and-open)
-    (?) "as opml." org-pandoc-export-as-opml)
-    ;;(?0 "to org." org-pandoc-export-to-org)
-    (?0 "to org and open." org-pandoc-export-to-org-and-open)
-    (?  "as org." org-pandoc-export-as-org)
     ;;(?p "to plain." org-pandoc-export-to-plain)
     (?p "to plain and open." org-pandoc-export-to-plain-and-open)
     (?P "as plain." org-pandoc-export-as-plain)
-    ;;(?v "to revealjs." org-pandoc-export-to-revealjs)
-    (?v "to revealjs and open." org-pandoc-export-to-revealjs-and-open)
-    (?V "as revealjs." org-pandoc-export-as-revealjs)
-    ;;(?: "to rst." org-pandoc-export-to-rst)
-    (?: "to rst and open." org-pandoc-export-to-rst-and-open)
-    (?* "as rst." org-pandoc-export-as-rst)
+    ;;(?q "to commonmark." org-pandoc-export-to-commonmark)
+    ;;(?q "to commonmark and open." org-pandoc-export-to-commonmark-and-open)
+    ;;(?Q "as commonmark." org-pandoc-export-as-commonmark)
     ;;(?r "to rtf." org-pandoc-export-to-rtf)
     (?r "to rtf and open." org-pandoc-export-to-rtf-and-open)
     (?R "as rtf." org-pandoc-export-as-rtf)
     ;;(?s "to s5." org-pandoc-export-to-s5)
-    (?s "to s5 and open." org-pandoc-export-to-s5-and-open)
-    (?S "as s5." org-pandoc-export-as-s5)
-    ;;(?< "to slideous." org-pandoc-export-to-slideous)
-    (?< "to slideous and open." org-pandoc-export-to-slideous-and-open)
-    (?, "as slideous." org-pandoc-export-as-slideous)
+    ;;(?s "to s5 and open." org-pandoc-export-to-s5-and-open)
+    ;;(?S "as s5." org-pandoc-export-as-s5)
+    ;;(?t "to texinfo." org-pandoc-export-to-texinfo)
+    ;;(?t "to texinfo and open." org-pandoc-export-to-texinfo-and-open)
+    ;;(?T "as texinfo." org-pandoc-export-as-texinfo)
+    ;;(?u "to dokuwiki." org-pandoc-export-to-dokuwiki)
+    (?u "to dokuwiki and open." org-pandoc-export-to-dokuwiki-and-open)
+    (?U "as dokuwiki." org-pandoc-export-as-dokuwiki)
+    ;;(?v "to revealjs." org-pandoc-export-to-revealjs)
+    (?v "to revealjs and open." org-pandoc-export-to-revealjs-and-open)
+    (?V "as revealjs." org-pandoc-export-as-revealjs)
+    ;;(?w "to mediawiki." org-pandoc-export-to-mediawiki)
+    (?w "to mediawiki and open." org-pandoc-export-to-mediawiki-and-open)
+    (?W "as mediawiki." org-pandoc-export-as-mediawiki)
+    (?x "to docx and open." org-pandoc-export-to-docx-and-open)
+    (?X "to docx." org-pandoc-export-to-docx)
     ;;(?y "to slidy." org-pandoc-export-to-slidy)
     (?y "to slidy and open." org-pandoc-export-to-slidy-and-open)
     (?Y "as slidy." org-pandoc-export-as-slidy)
-    ;;(?t "to texinfo." org-pandoc-export-to-texinfo)
-    (?t "to texinfo and open." org-pandoc-export-to-texinfo-and-open)
-    (?T "as texinfo." org-pandoc-export-as-texinfo)
-    ;;(?2 "to tei." org-pandoc-export-to-tei)
-    (?2 "to tei and open." org-pandoc-export-to-tei-and-open)
-    (?\" "as tei." org-pandoc-export-as-tei)
-    ;;(?> "to textile." org-pandoc-export-to-textile)
-    (?> "to textile and open." org-pandoc-export-to-textile-and-open)
-    (?. "as textile." org-pandoc-export-as-textile)
+    ;;(?z "to dzslides." org-pandoc-export-to-dzslides)
+    (?z "to dzslides and open." org-pandoc-export-to-dzslides-and-open)
+    (?Z "as dzslides." org-pandoc-export-as-dzslides)
+    ;;(?{ "to muse." org-pandoc-export-to-muse)
+    ;;(?{ "to muse and open." org-pandoc-export-to-muse-and-open)
+    ;;(?[ "as muse." org-pandoc-export-as-muse)
+    ;;(?} "to zimwiki." org-pandoc-export-to-zimwiki)
+    ;;(?} "to zimwiki and open." org-pandoc-export-to-zimwiki-and-open)
+    ;;(?] "as zimwiki." org-pandoc-export-as-zimwiki)
+    ;;(?~ "to haddock." org-pandoc-export-to-haddock)
+    ;;(?~ "to haddock and open." org-pandoc-export-to-haddock-and-open)
+    ;;(?^ "as haddock." org-pandoc-export-as-haddock)
     )
   "Pandoc menu-entry."
   :group 'org-pandoc
@@ -264,10 +289,10 @@
   :group 'org-pandoc
   :type 'string)
 
-(defcustom org-pandoc-markdown-extension ""
-  "Pandoc Markdown Extension specification."
-  :group 'org-pandoc
-  :type 'string)
+;;(defcustom org-pandoc-markdown-extension ""
+;;  "Pandoc Markdown Extension specification."
+;;  :group 'org-pandoc
+;;  :type 'string)
 
 ;;; each backend processor
 
@@ -386,30 +411,20 @@
   "Export as context."
   (interactive) (org-pandoc-export 'context a s v b e t))
 
-(defcustom org-pandoc-options-for-docbook nil
-  "Pandoc options for docbook."
+(defcustom org-pandoc-options-for-context-pdf nil
+  "Pandoc options for context-pdf."
   :group 'org-pandoc
   :type org-pandoc-option-type)
 
-(defcustom org-pandoc-after-processing-docbook-hook nil
-  "Hook called after processing docbook."
-  :group 'org-pandoc
-  :type 'hook)
+;;;###autoload
+(defun org-pandoc-export-to-context-pdf (&optional a s v b e)
+  "Export to context-pdf."
+  (interactive) (org-pandoc-export 'context-pdf a s v b e))
 
 ;;;###autoload
-(defun org-pandoc-export-to-docbook (&optional a s v b e)
-  "Export to docbook."
-  (interactive) (org-pandoc-export 'docbook a s v b e))
-
-;;;###autoload
-(defun org-pandoc-export-to-docbook-and-open (&optional a s v b e)
-  "Export to docbook and open."
-  (interactive) (org-pandoc-export 'docbook a s v b e 0))
-
-;;;###autoload
-(defun org-pandoc-export-as-docbook (&optional a s v b e)
-  "Export as docbook."
-  (interactive) (org-pandoc-export 'docbook a s v b e t))
+(defun org-pandoc-export-to-context-pdf-and-open (&optional a s v b e)
+  "Export to context-pdf and open."
+  (interactive) (org-pandoc-export 'context-pdf a s v b e 0))
 
 (defcustom org-pandoc-options-for-docbook5 nil
   "Pandoc options for docbook5."
@@ -501,20 +516,20 @@
   "Export as dzslides."
   (interactive) (org-pandoc-export 'dzslides a s v b e t))
 
-(defcustom org-pandoc-options-for-epub nil
-  "Pandoc options for epub."
+(defcustom org-pandoc-options-for-epub2 nil
+  "Pandoc options for epub2."
   :group 'org-pandoc
   :type org-pandoc-option-type)
 
 ;;;###autoload
-(defun org-pandoc-export-to-epub (&optional a s v b e)
-  "Export to epub."
-  (interactive) (org-pandoc-export 'epub a s v b e))
+(defun org-pandoc-export-to-epub2 (&optional a s v b e)
+  "Export to epub2."
+  (interactive) (org-pandoc-export 'epub2 a s v b e))
 
 ;;;###autoload
-(defun org-pandoc-export-to-epub-and-open (&optional a s v b e)
-  "Export to epub and open."
-  (interactive) (org-pandoc-export 'epub a s v b e 0))
+(defun org-pandoc-export-to-epub2-and-open (&optional a s v b e)
+  "Export to epub2 and open."
+  (interactive) (org-pandoc-export 'epub2 a s v b e 0))
 
 (defcustom org-pandoc-options-for-epub3 nil
   "Pandoc options for epub3."
@@ -556,6 +571,31 @@
   "Export as fb2."
   (interactive) (org-pandoc-export 'fb2 a s v b e t))
 
+(defcustom org-pandoc-options-for-gfm nil
+  "Pandoc options for gfm."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-gfm-hook nil
+  "Hook called after processing gfm."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-gfm (&optional a s v b e)
+  "Export to gfm."
+  (interactive) (org-pandoc-export 'gfm a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-gfm-and-open (&optional a s v b e)
+  "Export to gfm and open."
+  (interactive) (org-pandoc-export 'gfm a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-gfm (&optional a s v b e)
+  "Export as gfm."
+  (interactive) (org-pandoc-export 'gfm a s v b e t))
+
 (defcustom org-pandoc-options-for-haddock nil
   "Pandoc options for haddock."
   :group 'org-pandoc
@@ -581,30 +621,30 @@
   "Export as haddock."
   (interactive) (org-pandoc-export 'haddock a s v b e t))
 
-(defcustom org-pandoc-options-for-html nil
-  "Pandoc options for html."
+(defcustom org-pandoc-options-for-html4 nil
+  "Pandoc options for html4."
   :group 'org-pandoc
   :type org-pandoc-option-type)
 
-(defcustom org-pandoc-after-processing-html-hook nil
-  "Hook called after processing html."
+(defcustom org-pandoc-after-processing-html4-hook nil
+  "Hook called after processing html4."
   :group 'org-pandoc
   :type 'hook)
 
 ;;;###autoload
-(defun org-pandoc-export-to-html (&optional a s v b e)
-  "Export to html."
-  (interactive) (org-pandoc-export 'html a s v b e))
+(defun org-pandoc-export-to-html4 (&optional a s v b e)
+  "Export to html4."
+  (interactive) (org-pandoc-export 'html4 a s v b e))
 
 ;;;###autoload
-(defun org-pandoc-export-to-html-and-open (&optional a s v b e)
-  "Export to html and open."
-  (interactive) (org-pandoc-export 'html a s v b e 0))
+(defun org-pandoc-export-to-html4-and-open (&optional a s v b e)
+  "Export to html4 and open."
+  (interactive) (org-pandoc-export 'html4 a s v b e 0))
 
 ;;;###autoload
-(defun org-pandoc-export-as-html (&optional a s v b e)
-  "Export as html."
-  (interactive) (org-pandoc-export 'html a s v b e t))
+(defun org-pandoc-export-as-html4 (&optional a s v b e)
+  "Export as html4."
+  (interactive) (org-pandoc-export 'html4 a s v b e t))
 
 (defcustom org-pandoc-options-for-html5 nil
   "Pandoc options for html5."
@@ -631,6 +671,21 @@
   "Export as html5."
   (interactive) (org-pandoc-export 'html5 a s v b e t))
 
+(defcustom org-pandoc-options-for-html5-pdf nil
+  "Pandoc options for html5-pdf."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+;;;###autoload
+(defun org-pandoc-export-to-html5-pdf (&optional a s v b e)
+  "Export to html5-pdf."
+  (interactive) (org-pandoc-export 'html5-pdf a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-html5-pdf-and-open (&optional a s v b e)
+  "Export to html5-pdf and open."
+  (interactive) (org-pandoc-export 'html5-pdf a s v b e 0))
+
 (defcustom org-pandoc-options-for-icml nil
   "Pandoc options for icml."
   :group 'org-pandoc
@@ -655,6 +710,31 @@
 (defun org-pandoc-export-as-icml (&optional a s v b e)
   "Export as icml."
   (interactive) (org-pandoc-export 'icml a s v b e t))
+
+(defcustom org-pandoc-options-for-jats nil
+  "Pandoc options for jats."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-jats-hook nil
+  "Hook called after processing jats."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-jats (&optional a s v b e)
+  "Export to jats."
+  (interactive) (org-pandoc-export 'jats a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-jats-and-open (&optional a s v b e)
+  "Export to jats and open."
+  (interactive) (org-pandoc-export 'jats a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-jats (&optional a s v b e)
+  "Export as jats."
+  (interactive) (org-pandoc-export 'jats a s v b e t))
 
 (defcustom org-pandoc-options-for-json nil
   "Pandoc options for json."
@@ -771,31 +851,6 @@
   "Export as markdown."
   (interactive) (org-pandoc-export 'markdown a s v b e t))
 
-(defcustom org-pandoc-options-for-markdown_github nil
-  "Pandoc options for markdown_github."
-  :group 'org-pandoc
-  :type org-pandoc-option-type)
-
-(defcustom org-pandoc-after-processing-markdown_github-hook nil
-  "Hook called after processing markdown_github."
-  :group 'org-pandoc
-  :type 'hook)
-
-;;;###autoload
-(defun org-pandoc-export-to-markdown_github (&optional a s v b e)
-  "Export to markdown_github."
-  (interactive) (org-pandoc-export 'markdown_github a s v b e))
-
-;;;###autoload
-(defun org-pandoc-export-to-markdown_github-and-open (&optional a s v b e)
-  "Export to markdown_github and open."
-  (interactive) (org-pandoc-export 'markdown_github a s v b e 0))
-
-;;;###autoload
-(defun org-pandoc-export-as-markdown_github (&optional a s v b e)
-  "Export as markdown_github."
-  (interactive) (org-pandoc-export 'markdown_github a s v b e t))
-
 (defcustom org-pandoc-options-for-markdown_mmd nil
   "Pandoc options for markdown_mmd."
   :group 'org-pandoc
@@ -896,6 +951,71 @@
   "Export as mediawiki."
   (interactive) (org-pandoc-export 'mediawiki a s v b e t))
 
+(defcustom org-pandoc-options-for-ms nil
+  "Pandoc options for ms."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-ms-hook nil
+  "Hook called after processing ms."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-ms (&optional a s v b e)
+  "Export to ms."
+  (interactive) (org-pandoc-export 'ms a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-ms-and-open (&optional a s v b e)
+  "Export to ms and open."
+  (interactive) (org-pandoc-export 'ms a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-ms (&optional a s v b e)
+  "Export as ms."
+  (interactive) (org-pandoc-export 'ms a s v b e t))
+
+(defcustom org-pandoc-options-for-ms-pdf nil
+  "Pandoc options for ms-pdf."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+;;;###autoload
+(defun org-pandoc-export-to-ms-pdf (&optional a s v b e)
+  "Export to ms-pdf."
+  (interactive) (org-pandoc-export 'ms-pdf a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-ms-pdf-and-open (&optional a s v b e)
+  "Export to ms-pdf and open."
+  (interactive) (org-pandoc-export 'ms-pdf a s v b e 0))
+
+(defcustom org-pandoc-options-for-muse nil
+  "Pandoc options for muse."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-muse-hook nil
+  "Hook called after processing muse."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-muse (&optional a s v b e)
+  "Export to muse."
+  (interactive) (org-pandoc-export 'muse a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-muse-and-open (&optional a s v b e)
+  "Export to muse and open."
+  (interactive) (org-pandoc-export 'muse a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-muse (&optional a s v b e)
+  "Export as muse."
+  (interactive) (org-pandoc-export 'muse a s v b e t))
+
 (defcustom org-pandoc-options-for-native nil
   "Pandoc options for native."
   :group 'org-pandoc
@@ -941,6 +1061,11 @@
   :group 'org-pandoc
   :type org-pandoc-option-type)
 
+(defcustom org-pandoc-after-processing-opendocument-hook nil
+  "Hook called after processing opendocument."
+  :group 'org-pandoc
+  :type 'hook)
+
 ;;;###autoload
 (defun org-pandoc-export-to-opendocument (&optional a s v b e)
   "Export to opendocument."
@@ -950,6 +1075,11 @@
 (defun org-pandoc-export-to-opendocument-and-open (&optional a s v b e)
   "Export to opendocument and open."
   (interactive) (org-pandoc-export 'opendocument a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-opendocument (&optional a s v b e)
+  "Export as opendocument."
+  (interactive) (org-pandoc-export 'opendocument a s v b e t))
 
 (defcustom org-pandoc-options-for-opml nil
   "Pandoc options for opml."
@@ -1176,31 +1306,6 @@
   "Export as slidy."
   (interactive) (org-pandoc-export 'slidy a s v b e t))
 
-(defcustom org-pandoc-options-for-texinfo nil
-  "Pandoc options for texinfo."
-  :group 'org-pandoc
-  :type org-pandoc-option-type)
-
-(defcustom org-pandoc-after-processing-texinfo-hook nil
-  "Hook called after processing texinfo."
-  :group 'org-pandoc
-  :type 'hook)
-
-;;;###autoload
-(defun org-pandoc-export-to-texinfo (&optional a s v b e)
-  "Export to texinfo."
-  (interactive) (org-pandoc-export 'texinfo a s v b e))
-
-;;;###autoload
-(defun org-pandoc-export-to-texinfo-and-open (&optional a s v b e)
-  "Export to texinfo and open."
-  (interactive) (org-pandoc-export 'texinfo a s v b e 0))
-
-;;;###autoload
-(defun org-pandoc-export-as-texinfo (&optional a s v b e)
-  "Export as texinfo."
-  (interactive) (org-pandoc-export 'texinfo a s v b e t))
-
 (defcustom org-pandoc-options-for-tei nil
   "Pandoc options for tei."
   :group 'org-pandoc
@@ -1226,6 +1331,31 @@
   "Export as tei."
   (interactive) (org-pandoc-export 'tei a s v b e t))
 
+(defcustom org-pandoc-options-for-texinfo nil
+  "Pandoc options for texinfo."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-texinfo-hook nil
+  "Hook called after processing texinfo."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-texinfo (&optional a s v b e)
+  "Export to texinfo."
+  (interactive) (org-pandoc-export 'texinfo a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-texinfo-and-open (&optional a s v b e)
+  "Export to texinfo and open."
+  (interactive) (org-pandoc-export 'texinfo a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-texinfo (&optional a s v b e)
+  "Export as texinfo."
+  (interactive) (org-pandoc-export 'texinfo a s v b e t))
+
 (defcustom org-pandoc-options-for-textile nil
   "Pandoc options for textile."
   :group 'org-pandoc
@@ -1250,6 +1380,31 @@
 (defun org-pandoc-export-as-textile (&optional a s v b e)
   "Export as textile."
   (interactive) (org-pandoc-export 'textile a s v b e t))
+
+(defcustom org-pandoc-options-for-zimwiki nil
+  "Pandoc options for zimwiki."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-zimwiki-hook nil
+  "Hook called after processing zimwiki."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-zimwiki (&optional a s v b e)
+  "Export to zimwiki."
+  (interactive) (org-pandoc-export 'zimwiki a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-zimwiki-and-open (&optional a s v b e)
+  "Export to zimwiki and open."
+  (interactive) (org-pandoc-export 'zimwiki a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-zimwiki (&optional a s v b e)
+  "Export as zimwiki."
+  (interactive) (org-pandoc-export 'zimwiki a s v b e t))
 
 
 ;;; ox-pandoc main routine
@@ -1572,18 +1727,27 @@ output."
 
 (defun org-pandoc-run-to-buffer-or-file
     (input-file format subtreep &optional buffer-or-open)
-  ;; buffer-or-open  (t: buffer) (nil: file) (0: file and open).
-  (let ((output-file
-         (unless (equal t buffer-or-open)
-           (org-export-output-file-name
-            (concat "." (symbol-name
-                         (or (assoc-default format org-pandoc-extensions)
-                             format)))
-            subtreep)))
-        (local-hook-symbol (intern (format "org-pandoc-after-processing-%s-hook"
-                                           format)))
-        css-temp-file meta-temp-file)
-    (when (or (equal org-pandoc-format 'epub)
+  "Run pandoc to convert on org INPUT-FILE or buffer to FORMAT with SUBTREEP.
+
+If BUFFER-OR-OPEN is t then target is current buffer. If nil, target is file.
+If 0, target is file and converted file will automatically be opend."
+  (let* ((pdf-p (string-match "-pdf$" (symbol-name format)))
+         (output-file
+          (unless (equal t buffer-or-open)
+            (org-export-output-file-name
+             (concat "."
+                     (if pdf-p "pdf"
+                       (symbol-name
+                        (or (assoc-default format org-pandoc-extensions)
+                            format))))
+             subtreep)))
+         (local-hook-symbol (intern (format "org-pandoc-after-processing-%s-hook"
+                                            format)))
+         css-temp-file meta-temp-file)
+    ;; convert format "XXX-pdf" to "XXX"
+    (when pdf-p (setq format (intern (substring (symbol-name format) 0 -4))))
+    ;; special treatment for epub2/epub3
+    (when (or (equal org-pandoc-format 'epub2)
               (equal org-pandoc-format 'epub3))
       (when org-pandoc-epub-css
         (setq css-temp-file (make-temp-file "org-pandoc" nil ".css"))
@@ -1608,6 +1772,7 @@ output."
 
 (defun org-pandoc-sentinel (process message)
   "PROCESS sentinel with MESSAGE."
+  (message "debug :: sentinel enter!")
   (cl-case (process-status process)
     (run)
     (signal
@@ -1633,8 +1798,8 @@ output."
                    (with-temp-file output-file
                      (insert-file-contents output-file)
                      (run-hooks local-hook-symbol)))
-               (if (equal 0 buffer-or-open)
-                   (org-open-file output-file)))
+               (when (equal 0 buffer-or-open)
+                 (org-open-file output-file)))
            ;; output to buffer
            (pop-to-buffer buffer)
            (run-hooks local-hook-symbol)
@@ -1644,15 +1809,10 @@ output."
   "Run pandoc command with INPUT-FILE (org), OUTPUT-FILE, FORMAT and OPTIONS.
 If BUFFER-OR-FILE is buffer, then output to specified buffer.
 OPTIONS is a hashtable.  It runs asynchronously."
-  (let* ((output-format
-          (symbol-name
-           (or (assoc-default format org-pandoc-translate-output-format)
-               format)))
+  (let* ((output-format (symbol-name format))
          (args
           `("-f" "org"
-            "-t" ,(if (string-match "^markdown" output-format)
-                      (concat output-format org-pandoc-markdown-extension)
-                    output-format)
+            "-t" ,output-format
             ,@(and output-file
                    (list "-o" (expand-file-name output-file)))
             ,@(-mapcat (lambda (key)
@@ -1672,6 +1832,7 @@ OPTIONS is a hashtable.  It runs asynchronously."
       process)))
 
 (defun org-pandoc-startup-check ()
+  "Check the current pandoc version."
   (interactive)
   (if (not (executable-find org-pandoc-command))
       (display-warning 'ox-pandoc "Pandoc command is not installed.")
@@ -1681,11 +1842,12 @@ OPTIONS is a hashtable.  It runs asynchronously."
       (if (not (string-match "^pandoc.*? \\([0-9]+\\)\\.\\([0-9]+\\)" version))
           (display-warning 'ox-pandoc "Pandoc version number can not be retrieved.")
         (let ((major (string-to-number (match-string 1 version)))
-              (minor (string-to-number (match-string 2 version))))
+              (_minor (string-to-number (match-string 2 version))))
           (unless (or (< 1 major)
-                      (and (= 1 major)
-                           (< 12 minor)))
-            (display-warning 'ox-pandoc "This Pandoc may not support org-mode reader.")))))))
+                      ;;(and (= 1 major)
+                      ;;     (< 12 minor))
+                      )
+            (display-warning 'ox-pandoc "This Pandoc (1.x) may not support new pandoc features.")))))))
 
 (org-pandoc-startup-check)
 
