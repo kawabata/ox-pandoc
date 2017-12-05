@@ -104,8 +104,8 @@ For example:
 ;; cancel above settings only for 'docx' format
 (setq org-pandoc-options-for-docx '((standalone . nil)))
 ;; special settings for beamer-pdf and latex-pdf exporters
-(setq org-pandoc-options-for-beamer-pdf '((latex-engine . "xelatex")))
-(setq org-pandoc-options-for-latex-pdf '((latex-engine . "xelatex")))
+(setq org-pandoc-options-for-beamer-pdf '((pdf-engine . "xelatex")))
+(setq org-pandoc-options-for-latex-pdf '((pdf-engine . "xelatex")))
 #+END_SRC
 
 ** Document-Specific Options
@@ -137,7 +137,7 @@ option-value pair.
 
 Following is an example:
 
-: #+PANDOC_OPTIONS: standalone:t latex-engine:xelatex
+: #+PANDOC_OPTIONS: standalone:t pdf-engine:xelatex
 : #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
 : #+BIBLIOGRAPHY: sample.bib
 : # Specifying Multiple values to single options by using colon-sparated lists.
