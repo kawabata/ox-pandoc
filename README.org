@@ -10,54 +10,71 @@ Following table shows the supported fromats.
 
 | format            | extension | buffer | file |
 |-------------------+-----------+--------+------|
-| asciidoc          | txt       | t      | t    |
-| beamer            | tex       | t      | t    |
-| beamer-pdf        | pdf       | nil    | t    |
-| commonmark        | md        | t      | t    |
-| context           | tex       | t      | t    |
-| docbook           | xml       | t      | t    |
-| docx              |           | nil    | t    |
-| dzslides          | html      | t      | t    |
-| epub              |           | nil    | t    |
-| epub3             | epub      | nil    | t    |
-| fb2               | fb2       | t      | t    |
-| html              |           | t      | t    |
-| html5             | html      | t      | t    |
-| icml              |           | t      | t    |
-| json              |           | t      | t    |
-| latex             | tex       | t      | t    |
-| latex-pdf         | pdf       | nil    | t    |
-| man               |           | t      | t    |
-| markdown          | md        | t      | t    |
-| markdown_github   | md        | t      | t    |
-| markdown_mmd      | md        | t      | t    |
-| markdown_phpextra | md        | t      | t    |
-| markdown_strict   | md        | t      | t    |
-| mediawiki         |           | t      | t    |
-| native            | hs        | t      | t    |
-| odt               |           | nil    | t    |
-| opendocument      | xml       | t      | t    |
-| opml              |           | t      | t    |
-| org               |           | t      | t    |
-| plain             | txt       | t      | t    |
-| revealjs          | html      | t      | t    |
-| rst               |           | t      | t    |
-| rtf               |           | t      | t    |
-| s5                | html      | t      | t    |
-| slideous          | html      | t      | t    |
-| slidy             | html      | t      | t    |
-| texinfo           | texi      | t      | t    |
-| textile           |           | t      | t    |
+| asciidoc          | txt       | yes    | yes  |
+| beamer            | tex       | yes    | yes  |
+| beamer-pdf        | pdf       | no     | yes  |
+| commonmark        | md        | yes    | yes  |
+| context           | tex       | yes    | yes  |
+| docbook           | xml       | yes    | yes  |
+| docx              |           | no     | yes  |
+| dzslides          | html      | yes    | yes  |
+| epub2             | epub      | no     | yes  |
+| epub3             | epub      | no     | yes  |
+| fb2               | fb2       | yes    | yes  |
+| gfm               | md        | yes    | yes  |
+| html4             | html      | yes    | yes  |
+| html5             | html      | yes    | yes  |
+| icml              |           | yes    | yes  |
+| json              |           | yes    | yes  |
+| latex             | tex       | yes    | yes  |
+| latex-pdf         | pdf       | no     | yes  |
+| man               |           | yes    | yes  |
+| markdown          | md        | yes    | yes  |
+| markdown_github   | md        | yes    | yes  |
+| markdown_mmd      | md        | yes    | yes  |
+| markdown_phpextra | md        | yes    | yes  |
+| markdown_strict   | md        | yes    | yes  |
+| mediawiki         |           | yes    | yes  |
+| native            | hs        | yes    | yes  |
+| odt               |           | no     | yes  |
+| opendocument      | xml       | yes    | yes  |
+| opml              |           | yes    | yes  |
+| org               |           | yes    | yes  |
+| plain             | txt       | yes    | yes  |
+| pptx              |           | no     | yes  |
+| revealjs          | html      | yes    | yes  |
+| rst               |           | yes    | yes  |
+| rtf               |           | yes    | yes  |
+| s5                | html      | yes    | yes  |
+| slideous          | html      | yes    | yes  |
+| slidy             | html      | yes    | yes  |
+| texinfo           | texi      | yes    | yes  |
+| textile           |           | yes    | yes  |
 
 * Requirements
 
-You need Emacs 24.2, org-mode 8.2, and Pandoc 1.13 (or later
+You need Emacs 24.2, org-mode 8.2, and Pandoc 2.0 (or later
 versions). Pandoc-Citeproc 0.3 (or later) may also be needed if you
 use bibliography features.
 
 Note that Org-mode equipped with Emacs 24.3 is version 7.9 and can not
 be used with this tool. It is recommended to install Pandoc via [[http://www.haskell.org/cabal/][Cabal]],
-as other package managers sometimes install old versions of Pandoc.
+or the installer directly downloaded from official web sites, as other
+package managers (such as Anaconda) sometimes install old versions of
+Pandoc.
+
+* Installation
+
+You can install this tool with [[www.melpa.org][MELPA]].  For example,
+
+#+BEGIN_SRC emacs-lisp
+(setq package-archives
+      '(("gnu" . "http://elpa.gnu.org/packages/")
+        ("melpa" . "http://melpa.milkbox.net/packages/")))
+#+END_SRC
+
+: M-x package-install ⏎
+: ox-pandoc ⏎
 
 * Usage
 
@@ -96,6 +113,9 @@ colon-separated list.
 Values of options defined in =org-pandoc-file-options= will be
 expanded to full path if they begin with =~= (tilde) character.
 
+You can also specify output format extension with
+=org-pandoc-format-extensions= variable.
+
 For example:
 
 #+BEGIN_SRC emacs-lisp
@@ -105,7 +125,9 @@ For example:
 (setq org-pandoc-options-for-docx '((standalone . nil)))
 ;; special settings for beamer-pdf and latex-pdf exporters
 (setq org-pandoc-options-for-beamer-pdf '((pdf-engine . "xelatex")))
-(setq org-pandoc-options-for-latex-pdf '((pdf-engine . "xelatex")))
+(setq org-pandoc-options-for-latex-pdf '((pdf-engine . "pdflatex")))
+;; special extensions for markdown_github output
+(setq org-pandoc-format-extensions '(markdown_github+pipe_tables+raw_html))
 #+END_SRC
 
 ** Document-Specific Options
@@ -119,6 +141,7 @@ option-value pair.
 
 - =PANDOC_OPTIONS:= :: Add command line options to the Pandoc process.
 - =PANDOC_METADATA:= :: Metadata for Pandoc.
+- =PANDOC_EXTENSIONS:= :: Extensions for specific Pandoc output.
 - =PANDOC_VARIABLES:= :: Variables for Pandoc.
 - =EPUB_RIGHTS:= :: copyright info to be embedded to EPUB metadata.
 - =EPUB_CHAPTER_LEVEL:= :: same as 'epub-chapter-level' pandoc-option.
@@ -137,13 +160,24 @@ option-value pair.
 
 Following is an example:
 
-: #+PANDOC_OPTIONS: standalone:t pdf-engine:xelatex
+: # If you don't want author to be appeared, just leave it empty.
+: #+AUTHOR:
+: #+PANDOC_OPTIONS: standalone:t pdf-engine:pdflatex
+: ## When option value includes whitespace, entire name:value pair must be quoted.
 : #+PANDOC_OPTIONS: "epub-cover-image:/home/a/test file.png" standalone:nil
+: #+PANDOC_OPTIONS: number-sections:nil
+: #+PANDOC_OPTIONS: template:mytemplate.tex
 : #+BIBLIOGRAPHY: sample.bib
 : # Specifying Multiple values to single options by using colon-sparated lists.
 : #+PANDOC_OPTIONS: filter:pandoc-zotxt:pandoc-citeproc
-: #+PANDOC_OPTIONS: csl:sample.csl
+: #+PANDOC_OPTIONS: csl:IEEE.csl
+: #+PANDOC_EXTENSIONS: markdown-typography latex+auto_identifiers
+: #+PANDOC_VARIABLES: documentclass:IEEEtran
+: #+PANDOC_VARIABLES: classoption:10pt,conference
 : #+PANDOC_METADATA: page-progression-direction:ltr
+: #+latex_header: \author{\IEEEauthorblockN{John Smith}
+: #+latex_header: \IEEEauthorblockA{FooBar Institute\\
+: #+latex_header: Email: john.smith@foo.bar}
 
 ** Customizing Shortcuts
 As pandoc supports many number of formats, initial
@@ -159,19 +193,6 @@ settings in your init file.
 (with-eval-after-load 'ox
   (require 'ox-pandoc))
 #+END_SRC
-
-* Installation
-
-You can install this tool with [[www.melpa.org][MELPA]].  For example,
-
-#+BEGIN_SRC emacs-lisp
-(setq package-archives
-      '(("gnu" . "http://elpa.gnu.org/packages/")
-        ("melpa" . "http://melpa.milkbox.net/packages/")))
-#+END_SRC
-
-: M-x package-install ⏎
-: ox-pandoc ⏎
 
 * VS.
 

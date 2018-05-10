@@ -6,7 +6,7 @@
 ;; Description: Another org exporter for Pandoc
 ;; Author: KAWABATA, Taichi <kawabata.taichi@gmail.com>
 ;; Created: 2014-07-20
-;; Version: 1.171107
+;; Version: 1.180510
 ;; Package-Requires: ((org "8.2") (emacs "24") (dash "2.8") (ht "2.0") (cl-lib "0.5"))
 ;; Keywords: tools
 ;; URL: https://github.com/kawabata/ox-pandoc
@@ -28,7 +28,7 @@
 
 ;; This is another exporter for org-mode that translates Org-mode file
 ;; to various other formats via Pandoc.  You need org-mode version 8.2
-;; or later, and Pandoc 1.13 or later, to use this package.  For
+;; or later, and Pandoc 2.0 or later, to use this package.  For
 ;; details, please refer https://github.com/kawabata/ox-pandoc.
 
 ;;; Code:
@@ -47,73 +47,46 @@
   :group 'org-export)
 
 (defconst org-pandoc-valid-options
-  '(abbreviations
-    ascii asciimathml
-    atx-headers base-header-level bash-completion biblatex
-    bibliography citation-abbreviations columns csl css
-    data-dir default-image-extension dpi dump-args email-obfuscation
-    eol
+  '(abbreviations ascii atx-headers base-header-level bash-completion
+    biblatex bibliography citation-abbreviations columns csl css
+    data-dir default-image-extension dpi dump-args email-obfuscation eol
     epub-chapter-level epub-cover-image epub-embed-font epub-metadata
-    epub-subdirectory extract-media
-    fail-if-warnings
-    file-scope filter gladtex
-    highlight-style html-q-tags id-prefix ignore-args
-    include-after-body include-before-body include-in-header incremental
-    indented-code-classes jsmath katex
-    latexmathml list-extensions
-    list-highlight-languages list-highlight-styles ;; list-input-formats
-    ;; list-output-formats
-    listings log lua-filter mathjax mathml metadata mimetex natbib
-    no-highlight
-    ;; no-tex-ligatures no-wrap normalize
-    number-offset
-    number-sections
-    ;; offline old-dashes output parse-raw
-    pdf-engine-opt pdf-engine
-    preserve-tabs
-    print-default-data-file print-default-template
-    quiet reference-doc
-    reference-links reference-location
-    ;; reference-odt
-    resource-path
-    section-divs
-    self-contained slide-level
-    ;; smart
-    standalone strip-comments syntax-definition tab-stop
+    epub-subdirectory extract-media fail-if-warnings file-scope filter
+    highlight-style html-q-tags id-prefix ignore-args include-after-body
+    include-before-body include-in-header incremental
+    indented-code-classes katex list-extensions list-highlight-languages
+    list-highlight-styles listings log lua-filter mathjax mathml
+    metadata natbib no-highlight number-offset number-sections
+    pdf-engine-opt pdf-engine preserve-tabs print-default-data-file
+    print-default-template quiet reference-doc reference-links
+    reference-location resource-path section-divs self-contained
+    slide-level standalone strip-comments syntax-definition tab-stop
     table-of-contents template title-prefix toc top-level-division
     toc-depth trace track-changes variable verbose version webtex wrap))
 
 (defconst org-pandoc-colon-separated-options
-  '(abbreviations css
-    include-in-header include-before-body include-after-body
-    pdf-engine-opt
-    epub-embed-font bibliography filter lua-filter))
+  '(abbreviations css include-in-header include-before-body
+    include-after-body pdf-engine-opt epub-embed-font bibliography
+    filter lua-filter))
 
 (defconst org-pandoc-file-options
   '(abbreviations bibliography citation-abbreviations csl
-    epub-cover-image epub-embed-font epub-metadata
-    include-after-body include-before-body include-in-header
-    log print-default-data-file
-    reference-doc syntax-definition template
-    ))
+    epub-cover-image epub-embed-font epub-metadata include-after-body
+    include-before-body include-in-header log print-default-data-file
+    reference-doc syntax-definition template ))
 
 (defconst org-pandoc-extensions
   '((asciidoc . txt) (beamer . tex)
-    ;;(beamer-pdf . pdf)
     (commonmark . md) (context . tex)
     (docbook4 . dbk) (docbook5 . dbk) (dokuwiki . doku)
     (dzslides . html) (epub2 . epub) (epub3 . epub) (gfm . md)
     (haddock . hs) (html4 . html) (html5 . html) (latex . tex)
-    ;;(latex-pdf . pdf)
-    (markdown . md) ;; (markdown_github . md)
+    (markdown . md)
     (markdown_mmd . md) (markdown_phpextra . md)
     (markdown_strict . md) (native . hs)
     (opendocument . xml) (plain . txt) (revealjs . html) (s5 . html)
     (slideous . html) (slidy . html) (texinfo . texi)
     (zimwiki . zim)))
-
-;;(defconst org-pandoc-translate-output-format
-;;  '((beamer-pdf . beamer) (latex-pdf . latex)))
 
 (defconst org-pandoc-option-type
   `(choice (const t) (const nil)
@@ -124,6 +97,13 @@
   "Pandoc options."
   :group 'org-pandoc
   :type org-pandoc-option-type)
+
+(defcustom org-pandoc-format-extensions nil
+  "List of Pandoc format extensions for specific output format.
+For example, if you want to specify markdown to have footnotes extension,
+set as `(markdown_strict+footnotes)'."
+  :group 'org-pandoc
+  :type '(repeat symbol))
 
 (defcustom org-pandoc-command "pandoc"
   "Pandoc command."
@@ -158,8 +138,8 @@
     ;;(?8 "to opendocument and open." org-pandoc-export-to-opendocument-and-open)
     ;;(?( "as opendocument." org-pandoc-export-as-opendocument)
     ;;(?9 "to opml." org-pandoc-export-to-opml)
-    (?9 "to opml and open." org-pandoc-export-to-opml-and-open)
-    ;;(?\) "as opml." org-pandoc-export-as-opml)
+    ;;(?9 "to opml and open." org-pandoc-export-to-opml-and-open)
+    ;;(?) "as opml." org-pandoc-export-as-opml)
     ;;(?: "to rst." org-pandoc-export-to-rst)
     ;;(?: "to rst and open." org-pandoc-export-to-rst-and-open)
     ;;(?* "as rst." org-pandoc-export-as-rst)
@@ -211,9 +191,8 @@
     (?N "as native." org-pandoc-export-as-native)
     (?o "to odt and open." org-pandoc-export-to-odt-and-open)
     (?O "to odt." org-pandoc-export-to-odt)
-    ;;(?p "to plain." org-pandoc-export-to-plain)
-    (?p "to plain and open." org-pandoc-export-to-plain-and-open)
-    (?P "as plain." org-pandoc-export-as-plain)
+    (?p "to pptx and open." org-pandoc-export-to-pptx-and-open)
+    (?P "to pptx." org-pandoc-export-to-pptx)
     ;;(?q "to commonmark." org-pandoc-export-to-commonmark)
     ;;(?q "to commonmark and open." org-pandoc-export-to-commonmark-and-open)
     ;;(?Q "as commonmark." org-pandoc-export-as-commonmark)
@@ -270,6 +249,7 @@
        ,org-pandoc-menu-entry)
   :options-alist
   '((:pandoc-options "PANDOC_OPTIONS" nil nil space)
+    (:pandoc-extensions "PANDOC_EXTENSIONS" nil nil space)
     (:pandoc-metadata "PANDOC_METADATA" nil nil space)
     (:pandoc-variables "PANDOC_VARIABLES" nil nil space)
     (:epub-chapter-level "EPUB_CHAPTER_LEVEL" nil nil t)
@@ -288,11 +268,6 @@
   "Pandoc option for EPUB copyrihgt statement."
   :group 'org-pandoc
   :type 'string)
-
-;;(defcustom org-pandoc-markdown-extension ""
-;;  "Pandoc Markdown Extension specification."
-;;  :group 'org-pandoc
-;;  :type 'string)
 
 ;;; each backend processor
 
@@ -425,6 +400,31 @@
 (defun org-pandoc-export-to-context-pdf-and-open (&optional a s v b e)
   "Export to context-pdf and open."
   (interactive) (org-pandoc-export 'context-pdf a s v b e 0))
+
+(defcustom org-pandoc-options-for-docbook4 nil
+  "Pandoc options for docbook4."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+(defcustom org-pandoc-after-processing-docbook4-hook nil
+  "Hook called after processing docbook4."
+  :group 'org-pandoc
+  :type 'hook)
+
+;;;###autoload
+(defun org-pandoc-export-to-docbook4 (&optional a s v b e)
+  "Export to docbook4."
+  (interactive) (org-pandoc-export 'docbook4 a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-docbook4-and-open (&optional a s v b e)
+  "Export to docbook4 and open."
+  (interactive) (org-pandoc-export 'docbook4 a s v b e 0))
+
+;;;###autoload
+(defun org-pandoc-export-as-docbook4 (&optional a s v b e)
+  "Export as docbook4."
+  (interactive) (org-pandoc-export 'docbook4 a s v b e t))
 
 (defcustom org-pandoc-options-for-docbook5 nil
   "Pandoc options for docbook5."
@@ -1156,6 +1156,21 @@
   "Export as plain."
   (interactive) (org-pandoc-export 'plain a s v b e t))
 
+(defcustom org-pandoc-options-for-pptx nil
+  "Pandoc options for pptx."
+  :group 'org-pandoc
+  :type org-pandoc-option-type)
+
+;;;###autoload
+(defun org-pandoc-export-to-pptx (&optional a s v b e)
+  "Export to pptx."
+  (interactive) (org-pandoc-export 'pptx a s v b e))
+
+;;;###autoload
+(defun org-pandoc-export-to-pptx-and-open (&optional a s v b e)
+  "Export to pptx and open."
+  (interactive) (org-pandoc-export 'pptx a s v b e 0))
+
 (defcustom org-pandoc-options-for-revealjs nil
   "Pandoc options for revealjs."
   :group 'org-pandoc
@@ -1411,6 +1426,7 @@
 
 (defvar org-pandoc-format nil)
 (defvar org-pandoc-option-table nil)
+(defvar org-pandoc-format-extensions-str nil)
 (defvar org-pandoc-epub-meta nil)
 (defvar org-pandoc-epub-css nil)
 
@@ -1641,6 +1657,11 @@ Option table is created in this stage."
                    (value (match-string 2 it)))
               (cons name value))
             (split-string-and-unquote pandoc-options))))
+  (setq org-pandoc-format-extensions-str
+        (mapcar 'symbol-name org-pandoc-format-extensions))
+  (-when-let (pandoc-extensions (plist-get info :pandoc-extensions))
+    (dolist (extension (split-string pandoc-extensions))
+      (push extension org-pandoc-format-extensions-str)))
   (setq org-pandoc-epub-css (plist-get info :epub-css))
   (setq org-pandoc-epub-meta
         (or (plist-get info :epub-meta)
@@ -1809,10 +1830,13 @@ If 0, target is file and converted file will automatically be opend."
   "Run pandoc command with INPUT-FILE (org), OUTPUT-FILE, FORMAT and OPTIONS.
 If BUFFER-OR-FILE is buffer, then output to specified buffer.
 OPTIONS is a hashtable.  It runs asynchronously."
-  (let* ((output-format (symbol-name format))
+  (let* ((format (symbol-name format))
+         (output-format
+          (car (--filter (string-prefix-p format it)
+                         org-pandoc-format-extensions-str)))
          (args
           `("-f" "org"
-            "-t" ,output-format
+            "-t" ,(or output-format format)
             ,@(and output-file
                    (list "-o" (expand-file-name output-file)))
             ,@(-mapcat (lambda (key)
