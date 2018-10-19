@@ -207,7 +207,7 @@ pandoc.
 ** Temporary Files
 
 This file creates and removes "XXXX.tmpZZZZ.org" and
-"XXXX.tmpZZZZ.css" (if necessary) temprary files in working directory.
+"XXXX.tmpZZZZ.css" (if necessary) temporary files in working directory.
 (ZZZZ is random string.)
 
 ** Obsolete In-File Options
