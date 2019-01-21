@@ -1425,6 +1425,7 @@ set as `(markdown_strict+footnotes)'."
 ;;; ox-pandoc main routine
 
 (defvar org-pandoc-format nil)
+(make-local-variable 'org-pandoc-format)
 (defvar org-pandoc-option-table nil)
 (defvar org-pandoc-format-extensions-str nil)
 (defvar org-pandoc-epub-meta nil)
@@ -1438,7 +1439,7 @@ t means output to buffer."
     (error "You must run this command in org-mode."))
   (unless (executable-find org-pandoc-command)
     (error "Pandoc (version 1.12.4 or later) can not be found."))
-  (setq org-pandoc-format format)
+  (setq-local org-pandoc-format format)
   (org-export-to-file 'pandoc (org-export-output-file-name
                                (concat (make-temp-name ".tmp") ".org") s)
     a s v b e (lambda (f) (org-pandoc-run-to-buffer-or-file f format s buf-or-open))))
@@ -1789,7 +1790,9 @@ If 0, target is file and converted file will automatically be opend."
       (process-put process 'files (list input-file meta-temp-file css-temp-file))
       (process-put process 'output-file output-file)
       (process-put process 'local-hook-symbol local-hook-symbol)
-      (process-put process 'buffer-or-open buffer-or-open))))
+      (process-put process 'buffer-or-open buffer-or-open))
+    ;; Return output file name.
+    output-file))
 
 (defun org-pandoc-sentinel (process message)
   "PROCESS sentinel with MESSAGE."
@@ -1848,12 +1851,12 @@ OPTIONS is a hashtable.  It runs asynchronously."
                        (ht-keys options))
             ,(expand-file-name input-file))))
     (message "Running pandoc with args: %s" args)
-    (let ((process
-           (apply 'start-process
-                  `("pandoc" ,(generate-new-buffer "*Pandoc*")
-                    ,org-pandoc-command ,@args))))
-      (set-process-sentinel process sentinel)
-      process)))
+    (let ((return
+           (apply 'call-process
+                  `(,org-pandoc-command nil nil
+                                        nil ,@args))))
+      (message "Exported to %s." output-file)
+      )))
 
 (defun org-pandoc-startup-check ()
   "Check the current pandoc version."
