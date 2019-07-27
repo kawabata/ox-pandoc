@@ -185,6 +185,16 @@ As pandoc supports many number of formats, initial
 supported formats. You can customize =org-pandoc-menu-entry= variable
 (and probably restart Emacs) to change its default menu entries.
 
+To show ox-pandox shortcuts in the org-mode export list, you need to 
+load ox-pandoc in your emacs init file with the line:
+=(require 'ox-pandoc)=
+For more info see https://orgmode.org/manual/Exporting.html
+#+BEGIN_QUOTE
+Org only loads back-ends for the following formats by default: ASCII, HTML, iCalendar, LaTeX, and ODT. Additional back-ends can be loaded in either of two ways: by configuring the org-export-backends variable, or by requiring libraries in the Emacs init file. For example, to load the Markdown back-end, add this to your Emacs config:
+
+(require 'ox-md)
+#+END_QUOTE
+
 If you want delayed loading of `ox-pandoc' when
 =org-pandoc-menu-entry= is customized, please consider the following
 settings in your init file.
