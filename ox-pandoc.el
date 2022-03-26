@@ -1835,7 +1835,7 @@ OPTIONS is a hashtable.  It runs asynchronously."
           (car (--filter (string-prefix-p format it)
                          org-pandoc-format-extensions-str)))
          (args
-          `("-f" "org"
+          `("-f" "org+smart"
             "-t" ,(or output-format format)
             ,@(and output-file
                    (list "-o" (expand-file-name output-file)))
